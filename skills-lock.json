@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "building-with-medusa": {
+      "source": "medusajs/medusa-agent-skills",
+      "sourceType": "github",
+      "computedHash": "fef62d911eba65523b679baea2ce9bf1c253211f18499115374dc9727c024e4f"
+    }
+  }
+}
