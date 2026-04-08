@@ -1,0 +1,8 @@
+node_modules
+dist
+.medusa
+.env
+*.js.map
+.agents
+.claude
+PLAN.md

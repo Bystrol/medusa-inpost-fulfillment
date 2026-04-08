@@ -1,0 +1,47 @@
+{
+  "name": "medusa-inpost-fulfillment",
+  "version": "0.1.0",
+  "description": "InPost fulfillment provider for MedusaJS v2 - Paczkomat locker and courier integration via ShipX API",
+  "license": "MIT",
+  "keywords": [
+    "medusa-plugin-integration",
+    "medusa-v2",
+    "medusa-plugin-shipping",
+    "inpost",
+    "paczkomat",
+    "shipx"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    "./providers/*": "./.medusa/server/providers/*/index.js",
+    "./*": "./.medusa/server/*.js"
+  },
+  "files": [
+    ".medusa",
+    "!.medusa/server/**/__tests__/**",
+    "!.medusa/server/**/__mocks__/**"
+  ],
+  "scripts": {
+    "build": "medusa plugin:build",
+    "dev": "medusa plugin:develop",
+    "publish:local": "medusa plugin:publish"
+  },
+  "devDependencies": {
+    "@medusajs/cli": "^2.5.0",
+    "@medusajs/framework": "^2.5.0",
+    "@medusajs/medusa": "^2.5.0",
+    "@swc/core": "^1.7.28",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  },
+  "peerDependencies": {
+    "@medusajs/framework": "^2.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bystrol/medusa-inpost-fulfillment"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
