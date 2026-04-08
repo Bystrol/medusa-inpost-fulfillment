@@ -343,6 +343,30 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     }
 
     try {
+      // InPost only allows cancelling shipments that haven't been confirmed/
+      // dispatched yet. Once a shipment moves past `created`, the DELETE call
+      // returns 400. In that case we skip the API call and let Medusa mark the
+      // fulfillment cancelled locally — the physical shipment must then be
+      // cancelled manually in the InPost Manager panel.
+      const CANCELLABLE_STATUSES = new Set(["created", "offers_prepared"]);
+
+      let status: string | undefined;
+      try {
+        const shipment = await this.client.getShipment(shipmentId);
+        status = shipment.status;
+      } catch (error) {
+        this.logger.warn(
+          `InPost cancelFulfillment: could not fetch shipment ${shipmentId} status, attempting cancel anyway: ${(error as Error).message}`
+        );
+      }
+
+      if (status && !CANCELLABLE_STATUSES.has(status)) {
+        this.logger.warn(
+          `InPost cancelFulfillment: shipment ${shipmentId} is in status "${status}" and cannot be cancelled via API. Marking fulfillment cancelled locally — cancel the shipment manually in InPost Manager if needed.`
+        );
+        return {};
+      }
+
       await this.client.cancelShipment(shipmentId);
     } catch (error) {
       this.logger.error("InPost cancelFulfillment failed", error as Error);

@@ -151,7 +151,9 @@ For locker shipments, a parcel template (`small`, `medium`, or `large`) is used 
 
 ### Cancellation
 
-When a fulfillment is cancelled in Medusa, the plugin cancels the corresponding shipment in InPost.
+When a fulfillment is cancelled in Medusa, the plugin attempts to cancel the corresponding shipment in InPost.
+
+> **Important:** InPost only allows cancelling shipments that are still in `created` or `offers_prepared` status. Once a shipment has been confirmed (label purchased/dispatch order issued), the InPost API will reject the cancel request. In that case, the plugin logs a warning and lets Medusa mark the fulfillment cancelled **locally only** — the physical shipment must be cancelled manually in [InPost Manager](https://manager.paczkomaty.pl) (for locker shipments) or [WebTrucker](https://kurier.inpost.pl) (for courier shipments).
 
 ### Labels
 
