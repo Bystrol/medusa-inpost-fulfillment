@@ -1,6 +1,6 @@
 {
   "name": "medusa-inpost-fulfillment",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "InPost fulfillment provider for MedusaJS v2 - Paczkomat locker and courier integration via ShipX API",
   "license": "MIT",
   "keywords": [
