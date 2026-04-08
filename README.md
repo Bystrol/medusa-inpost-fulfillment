@@ -38,6 +38,11 @@ export default defineConfig({
       resolve: "@medusajs/medusa/fulfillment",
       options: {
         providers: [
+          // default provider
+          {
+            resolve: "@medusajs/medusa/fulfillment-manual",
+            id: "manual",
+          },
           {
             resolve: "medusa-inpost-fulfillment/providers/inpost",
             id: "inpost",
