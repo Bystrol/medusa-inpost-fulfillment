@@ -2,6 +2,17 @@
 
 InPost fulfillment provider plugin for [MedusaJS v2](https://medusajs.com/). Integrates with the [InPost ShipX API](https://dokumentacja-inpost.atlassian.net/wiki/spaces/PL/pages/622754/API+ShipX) to support Paczkomat locker and courier delivery.
 
+> ## 🧪 Beta testers wanted
+>
+> This plugin has been tested thoroughly against the **InPost sandbox**, but not yet end-to-end against a **production** InPost account. If you have production InPost ShipX credentials and are using Medusa v2, I'd love your help validating real locker and courier shipments.
+>
+> What you'd get:
+>
+> - Free setup assistance
+> - Priority bug fixes
+>
+> Reach out by [opening a GitHub issue](https://github.com/bystrol/medusa-inpost-fulfillment/issues/new) or emailing the maintainer. Bug reports from production use are especially welcome.
+
 ## Features
 
 - **Paczkomat locker delivery** (`inpost_locker_standard`) — ships to a selected InPost locker machine

@@ -1,0 +1,97 @@
+name: Bug report
+description: Report a problem with medusa-inpost-fulfillment
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the fields below so the issue can be reproduced and fixed.
+
+  - type: dropdown
+    id: inpost-environment
+    attributes:
+      label: InPost environment
+      description: Which InPost environment were you using when the bug occurred?
+      options:
+        - sandbox
+        - production
+    validations:
+      required: true
+
+  - type: dropdown
+    id: shipment-type
+    attributes:
+      label: Shipment type
+      options:
+        - locker (Paczkomat)
+        - courier
+        - both / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: e.g. 0.1.2
+    validations:
+      required: true
+
+  - type: input
+    id: medusa-version
+    attributes:
+      label: Medusa version
+      placeholder: e.g. 2.5.0
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      placeholder: e.g. 20.11.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The more specific, the better.
+      placeholder: |
+        1. Configure the plugin with ...
+        2. Create a shipping option for ...
+        3. Place an order and ...
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Paste any relevant error messages, stack traces, or Medusa server logs. Please redact API tokens and personal data.
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Anything else that might help — configuration snippets, screenshots, related issues, etc.
