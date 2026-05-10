@@ -3,8 +3,11 @@ export interface InPostPluginOptions {
   organizationId: string
   sandbox?: boolean
   defaultParcelTemplate?: "small" | "medium" | "large"
+  defaultLabelFormat?: InPostLabelFormat
   sender?: InPostPerson
 }
+
+export type InPostLabelFormat = "pdf" | "zpl"
 
 export interface InPostAddress {
   street: string
@@ -84,4 +87,3 @@ export interface InPostShipmentResponse {
   created_at?: string
   updated_at?: string
 }
-

@@ -29,6 +29,15 @@ InPost fulfillment provider plugin for [MedusaJS v2](https://medusajs.com/). Int
 - Node.js >= 20
 - InPost ShipX API credentials ([register here](https://manager.paczkomaty.pl/))
 
+## InPost API version
+
+This plugin currently integrates with the Polish InPost ShipX v1 API:
+
+- Sandbox: `https://sandbox-api-shipx-pl.easypack24.net/v1`
+- Production: `https://api-shipx-pl.easypack24.net/v1`
+
+It does not yet use the newer InPost Global API (`/shipping/v2` on `api.inpost-group.com`). Migrating to the Global API requires separate changes to authentication, shipment payloads, label retrieval, tracking identifiers, and endpoint URLs.
+
 ## Installation
 
 ```bash
@@ -68,6 +77,10 @@ export default defineConfig({
               // Optional — default parcel template for locker shipments
               // "small" | "medium" | "large" (default: "small")
               defaultParcelTemplate: "small",
+
+              // Optional — default shipment label format
+              // "pdf" | "zpl" (default: "pdf")
+              defaultLabelFormat: "pdf",
 
               // Required for courier shipments — sender details
               sender: {
@@ -145,6 +158,28 @@ await sdk.store.cart.addShippingMethod(cartId, {
 });
 ```
 
+### Address requirements
+
+InPost ShipX expects the street and building number as separate address fields. The storefront checkout should collect and save them separately:
+
+| Storefront field        | Medusa shipping address field        | Required |
+| ----------------------- | ------------------------------------ | -------- |
+| First name              | `shipping_address.first_name`        | Yes      |
+| Last name               | `shipping_address.last_name`         | Yes      |
+| Street                  | `shipping_address.address_1`         | Yes      |
+| Building number         | `shipping_address.address_2`         | Yes      |
+| Postal code             | `shipping_address.postal_code`       | Yes      |
+| City                    | `shipping_address.city`              | Yes      |
+| Country                 | `shipping_address.country_code`      | Yes      |
+| Phone                   | `shipping_address.phone`             | Yes      |
+| Company                 | `shipping_address.company`           | No       |
+| State / province        | `shipping_address.province`          | No       |
+| Apartment / flat number | `shipping_address.metadata.flat_number` | No    |
+
+Do not put the full street address with building number into `address_1` (for example `Marszalkowska 10`). Use `address_1` for the street name only and `address_2` for the building number.
+
+If the storefront has a single `Address` field, split it into separate `Street` and `Building number` inputs before using this provider.
+
 ### Parcel dimensions
 
 For courier shipments, the plugin aggregates parcel dimensions from cart item variants (the `weight`, `length`, `height`, and `width` fields on product variants). If no dimensions are set, defaults are used (200x200x100mm, 1kg).
@@ -182,10 +217,11 @@ Return shipments are not created automatically — they should be created manual
 | `organizationId`        | `string`                         | Yes         | —         | InPost organization ID                          |
 | `sandbox`               | `boolean`                        | No          | `false`   | Use sandbox API environment                     |
 | `defaultParcelTemplate` | `"small" \| "medium" \| "large"` | No          | `"small"` | Default parcel template for locker shipments    |
+| `defaultLabelFormat`    | `"pdf" \| "zpl"`                 | No          | `"pdf"`   | Default label format for shipment documents     |
 | `sender`                | `object`                         | For courier | —         | Sender details (required for courier shipments) |
-| `sender.company_name`   | `string`                         | No          | —         | Sender company name                             |
-| `sender.first_name`     | `string`                         | No          | —         | Sender first name                               |
-| `sender.last_name`      | `string`                         | No          | —         | Sender last name                                |
+| `sender.company_name`   | `string`                         | For courier | —         | Sender company name                             |
+| `sender.first_name`     | `string`                         | For courier | —         | Sender first name                               |
+| `sender.last_name`      | `string`                         | For courier | —         | Sender last name                                |
 | `sender.email`          | `string`                         | Yes         | —         | Sender email                                    |
 | `sender.phone`          | `string`                         | Yes         | —         | Sender phone number                             |
 | `sender.address`        | `object`                         | Yes         | —         | Sender address                                  |

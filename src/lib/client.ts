@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils";
 import {
+  InPostLabelFormat,
   InPostPluginOptions,
   InPostShipmentRequest,
   InPostShipmentResponse,
@@ -63,8 +64,14 @@ export class InPostShipXClient {
       if (response.status === 404) {
         throw new MedusaError(MedusaError.Types.NOT_FOUND, errorMessage);
       }
-      if (response.status === 422) {
+      if (response.status === 400 || response.status === 422) {
         throw new MedusaError(MedusaError.Types.INVALID_DATA, errorMessage);
+      }
+      if (response.status === 409) {
+        throw new MedusaError(MedusaError.Types.NOT_ALLOWED, errorMessage);
+      }
+      if (response.status === 429) {
+        throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, errorMessage);
       }
 
       throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, errorMessage);
@@ -117,7 +124,7 @@ export class InPostShipXClient {
     );
   }
 
-  async getLabel(id: number, format: "pdf" | "zpl" = "pdf"): Promise<Buffer> {
+  async getLabel(id: number, format: InPostLabelFormat = "pdf"): Promise<Buffer> {
     return this.request<Buffer>(
       "GET",
       `/v1/shipments/${id}/label?format=${format}`,

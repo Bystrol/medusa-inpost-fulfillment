@@ -15,17 +15,34 @@ import {
 } from "@medusajs/types";
 import { InPostShipXClient } from "../../lib/client";
 import {
-  InPostParcel,
-  InPostParcelTemplate,
-  InPostPerson,
+  buildShipmentRequest,
+  buildTrackingUrl,
+  InPostFulfillmentData,
+  resolveLabelFormat,
+} from "../../lib/fulfillment";
+import {
   InPostPluginOptions,
   InPostService,
-  InPostShipmentRequest,
 } from "../../lib/types";
 
 type InjectedDependencies = {
   logger: Logger;
 };
+
+function toInPostFulfillmentData(
+  data: Record<string, unknown>
+): InPostFulfillmentData {
+  return {
+    service_type: data.service_type as InPostFulfillmentData["service_type"],
+    target_point: data.target_point as string | undefined,
+    parcel_template:
+      data.parcel_template as InPostFulfillmentData["parcel_template"],
+    label_format: data.label_format as InPostFulfillmentData["label_format"],
+    parcel_dimensions:
+      data.parcel_dimensions as InPostFulfillmentData["parcel_dimensions"],
+    email: data.email as string | undefined,
+  };
+}
 
 class InPostFulfillmentProviderService extends AbstractFulfillmentProviderService {
   static identifier = "inpost";
@@ -79,16 +96,19 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     data: Record<string, unknown>,
     context: ValidateFulfillmentDataContext
   ): Promise<Record<string, unknown>> {
+    const fulfillmentData = toInPostFulfillmentData(data);
     const serviceId = optionData.id as InPostService;
 
     const isLockerService = serviceId === InPostService.inpost_locker_standard;
 
-    if (isLockerService && !data.target_point) {
+    if (isLockerService && !fulfillmentData.target_point) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "InPost locker delivery requires `target_point` (Paczkomat machine ID) in fulfillment data"
       );
     }
+
+    resolveLabelFormat(this.options, fulfillmentData);
 
     // Extract parcel dimensions from cart items' variant data.
     // For courier shipments, we aggregate item dimensions to build
@@ -140,7 +160,8 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     return {
       ...data,
       service_type: serviceId,
-      target_point: data.target_point,
+      target_point: fulfillmentData.target_point,
+      label_format: resolveLabelFormat(this.options, fulfillmentData),
       ...(parcelDimensions && { parcel_dimensions: parcelDimensions }),
     };
   }
@@ -163,6 +184,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     order: Partial<FulfillmentOrderDTO> | undefined,
     fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
+    const fulfillmentData = toInPostFulfillmentData(data);
     const shippingAddress = order?.shipping_address;
 
     if (!shippingAddress) {
@@ -175,86 +197,21 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     const email =
       order?.email ||
       (order as Partial<FulfillmentOrderDTO> & { customer?: { email?: string } })?.customer?.email ||
-      (data.email as string) ||
+      fulfillmentData.email ||
       "";
 
-    if (!email) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "InPost fulfillment: receiver email is required. Ensure the order has an email address."
-      );
-    }
-
-    // Normalize Polish postal code to XX-XXX format
-    let postCode = shippingAddress.postal_code || "";
-    if (/^\d{5}$/.test(postCode)) {
-      postCode = `${postCode.slice(0, 2)}-${postCode.slice(2)}`;
-    }
-
-    const receiver: InPostPerson = {
-      first_name: shippingAddress.first_name || undefined,
-      last_name: shippingAddress.last_name || undefined,
-      email,
-      phone: shippingAddress.phone || "",
-      address: {
-        street: shippingAddress.address_1 || "",
-        building_number: shippingAddress.address_2 || "1",
-        city: shippingAddress.city || "",
-        post_code: postCode,
-        country_code: (shippingAddress.country_code || "PL").toUpperCase(),
-      },
-    };
-
-    const serviceType =
-      (data.service_type as InPostService) ||
-      InPostService.inpost_locker_standard;
+    const serviceType = fulfillmentData.service_type;
 
     const isLockerService =
       serviceType === InPostService.inpost_locker_standard;
-
-    let parcel: InPostParcel;
-    if (isLockerService) {
-      const template = (data.parcel_template ||
-        this.options.defaultParcelTemplate ||
-        "small") as InPostParcelTemplate;
-      parcel = { template };
-    } else {
-      const dims = data.parcel_dimensions as
-        | { length: number; width: number; height: number; weight: number }
-        | undefined;
-
-      parcel = {
-        dimensions: {
-          length: dims?.length || 200,
-          width: dims?.width || 200,
-          height: dims?.height || 100,
-          unit: "mm",
-        },
-        weight: {
-          amount: dims?.weight || 1,
-          unit: "kg",
-        },
-      };
-    }
-
-    const customAttributes: InPostShipmentRequest["custom_attributes"] =
-      isLockerService
-        ? {
-            target_point: data.target_point as string,
-            sending_method: "parcel_locker",
-          }
-        : {
-            sending_method: "dispatch_order",
-          };
-
-    const shipmentRequest: InPostShipmentRequest = {
-      receiver,
-      ...(this.options.sender && { sender: this.options.sender }),
-      parcels: [parcel],
-      service: serviceType,
+    const labelFormat = resolveLabelFormat(this.options, fulfillmentData);
+    const shipmentRequest = buildShipmentRequest({
+      data: fulfillmentData,
+      options: this.options,
+      shippingAddress,
+      email,
       reference: order?.id || fulfillment.id,
-      custom_attributes: customAttributes,
-    };
+    });
 
     try {
       const shipment = await this.client.createShipment(shipmentRequest);
@@ -292,7 +249,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
       let dispatchOrderId: number | undefined;
 
       if (!isLockerService) {
-        const senderAddress = this.options.sender?.address;
+        const senderAddress = shipmentRequest.sender?.address;
 
         if (!senderAddress) {
           throw new MedusaError(
@@ -308,7 +265,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
             building_number: senderAddress.building_number,
             city: senderAddress.city,
             post_code: senderAddress.post_code,
-            country_code: senderAddress.country_code || "PL",
+            country_code: senderAddress.country_code,
           }
         );
 
@@ -319,12 +276,22 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
         data: {
           shipment_id: current.id,
           tracking_number: current.tracking_number,
+          tracking_url: buildTrackingUrl(current.tracking_number),
           status: current.status,
           service_type: serviceType,
-          target_point: data.target_point,
+          target_point: fulfillmentData.target_point,
+          label_format: labelFormat,
           ...(dispatchOrderId && { dispatch_order_id: dispatchOrderId }),
         },
-        labels: [],
+        labels: current.tracking_number
+          ? [
+              {
+                tracking_number: current.tracking_number,
+                tracking_url: buildTrackingUrl(current.tracking_number),
+                label_url: "",
+              },
+            ]
+          : [],
       };
     } catch (error) {
       this.logger.error("InPost createFulfillment failed", error as Error);
@@ -404,12 +371,19 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     }
 
     try {
-      const labelBuffer = await this.client.getLabel(shipmentId, "pdf");
+      const labelFormat = resolveLabelFormat(
+        this.options,
+        toInPostFulfillmentData(data)
+      );
+      const labelBuffer = await this.client.getLabel(shipmentId, labelFormat);
       return [
         {
           base64: labelBuffer.toString("base64"),
-          name: `inpost-label-${shipmentId}.pdf`,
-          type: "application/pdf",
+          name: `inpost-label-${shipmentId}.${labelFormat}`,
+          type:
+            labelFormat === "pdf"
+              ? "application/pdf"
+              : "application/octet-stream",
         },
       ];
     } catch (error) {
@@ -431,12 +405,19 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     }
 
     try {
-      const labelBuffer = await this.client.getLabel(shipmentId, "pdf");
+      const labelFormat = resolveLabelFormat(
+        this.options,
+        toInPostFulfillmentData(data)
+      );
+      const labelBuffer = await this.client.getLabel(shipmentId, labelFormat);
       return [
         {
           base64: labelBuffer.toString("base64"),
-          name: `inpost-return-label-${shipmentId}.pdf`,
-          type: "application/pdf",
+          name: `inpost-return-label-${shipmentId}.${labelFormat}`,
+          type:
+            labelFormat === "pdf"
+              ? "application/pdf"
+              : "application/octet-stream",
         },
       ];
     } catch (error) {
