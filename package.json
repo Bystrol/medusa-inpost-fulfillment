@@ -24,7 +24,7 @@
   "scripts": {
     "build": "medusa plugin:build",
     "dev": "medusa plugin:develop",
-    "publish:local": "medusa plugin:publish",
+    "pack:local": "npm run build && npm pack",
     "test": "node --test -r ts-node/register src/lib/__tests__/*.test.ts"
   },
   "devDependencies": {
@@ -33,8 +33,7 @@
     "@medusajs/medusa": "^2.5.0",
     "@swc/core": "^1.7.28",
     "ts-node": "^10.9.0",
-    "typescript": "^5.0.0",
-    "yalc": "^1.0.0-pre.53"
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "@medusajs/framework": "^2.5.0"
