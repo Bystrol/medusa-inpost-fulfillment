@@ -18,6 +18,9 @@ InPost fulfillment provider plugin for [MedusaJS v2](https://medusajs.com/). Int
 - **Paczkomat locker delivery** (`inpost_locker_standard`) — ships to a selected InPost locker machine
 - **Courier delivery** (`inpost_courier_standard`) — ships to the receiver's address with automatic dispatch order creation
 - Automatic offer selection and purchase (for prepaid accounts)
+- Local InPost shipment history stored in Medusa
+- Admin API for shipment list, details, status refresh, labels, and cancellation
+- Scheduled status synchronization for active shipments
 - Shipment label retrieval (PDF/ZPL)
 - Shipment cancellation
 - Polish postal code normalization (5 digits to XX-XXX format)
@@ -44,6 +47,12 @@ It does not yet use the newer InPost Global API (`/shipping/v2` on `api.inpost-g
 npm install medusa-inpost-fulfillment
 ```
 
+After installing or upgrading to a version that includes the InPost shipment module, run Medusa migrations:
+
+```bash
+npx medusa db:migrate
+```
+
 ## Configuration
 
 Add the plugin to your `medusa-config.ts`:
@@ -51,9 +60,49 @@ Add the plugin to your `medusa-config.ts`:
 ```ts
 import { defineConfig } from "@medusajs/framework/utils";
 
+const inpostOptions = {
+  // Required
+  apiToken: process.env.INPOST_API_TOKEN,
+  organizationId: process.env.INPOST_ORGANIZATION_ID,
+
+  // Optional — use InPost sandbox environment (default: false)
+  sandbox: true,
+
+  // Optional — default parcel template for locker shipments
+  // "small" | "medium" | "large" (default: "small")
+  defaultParcelTemplate: "small",
+
+  // Optional — default shipment label format
+  // "pdf" | "zpl" (default: "pdf")
+  defaultLabelFormat: "pdf",
+
+  // Required for courier shipments — sender details
+  sender: {
+    company_name: "My Store",
+    first_name: "John",
+    last_name: "Doe",
+    email: "shipping@mystore.com",
+    phone: "500100200",
+    address: {
+      street: "Marszalkowska",
+      building_number: "1",
+      city: "Warsaw",
+      post_code: "00-001",
+      country_code: "PL",
+    },
+  },
+};
+
 export default defineConfig({
   // ...
   plugins: [
+    // Registers the plugin module, Admin API routes, scheduled jobs, and migrations.
+    {
+      resolve: "medusa-inpost-fulfillment",
+      options: inpostOptions,
+    },
+  ],
+  modules: [
     {
       resolve: "@medusajs/medusa/fulfillment",
       options: {
@@ -66,38 +115,7 @@ export default defineConfig({
           {
             resolve: "medusa-inpost-fulfillment/providers/inpost",
             id: "inpost",
-            options: {
-              // Required
-              apiToken: process.env.INPOST_API_TOKEN,
-              organizationId: process.env.INPOST_ORGANIZATION_ID,
-
-              // Optional — use InPost sandbox environment (default: false)
-              sandbox: true,
-
-              // Optional — default parcel template for locker shipments
-              // "small" | "medium" | "large" (default: "small")
-              defaultParcelTemplate: "small",
-
-              // Optional — default shipment label format
-              // "pdf" | "zpl" (default: "pdf")
-              defaultLabelFormat: "pdf",
-
-              // Required for courier shipments — sender details
-              sender: {
-                company_name: "My Store",
-                first_name: "John",
-                last_name: "Doe",
-                email: "shipping@mystore.com",
-                phone: "500100200",
-                address: {
-                  street: "Marszalkowska",
-                  building_number: "1",
-                  city: "Warsaw",
-                  post_code: "00-001",
-                  country_code: "PL",
-                },
-              },
-            },
+            options: inpostOptions,
           },
         ],
       },
@@ -105,6 +123,10 @@ export default defineConfig({
   ],
 });
 ```
+
+The `medusa-inpost-fulfillment` plugin registration must be placed in `plugins`. It lets Medusa discover the plugin's `inpost` module, Admin API routes, scheduled jobs, and migrations. Do not place `resolve: "medusa-inpost-fulfillment"` in `modules`.
+
+The fulfillment provider registration under `@medusajs/medusa/fulfillment` must stay in `modules`, because it tells Medusa's fulfillment module that InPost is available as a shipping provider.
 
 ### Environment variables
 
@@ -182,9 +204,52 @@ If the storefront has a single `Address` field, split it into separate `Street` 
 
 ### Parcel dimensions
 
-For courier shipments, the plugin aggregates parcel dimensions from cart item variants (the `weight`, `length`, `height`, and `width` fields on product variants). If no dimensions are set, defaults are used (200x200x100mm, 1kg).
+For courier shipments, the plugin aggregates parcel dimensions from cart item variants (the `weight`, `length`, `height`, and `width` fields on product variants). If no dimensions are available, `parcel_dimensions` must be provided in fulfillment data. The plugin does not silently fall back to placeholder parcel dimensions.
 
 For locker shipments, a parcel template (`small`, `medium`, or `large`) is used instead, configurable via the `defaultParcelTemplate` option or per-shipment via `parcel_template` in fulfillment data.
+
+## InPost shipment history
+
+The plugin includes an `inpost` module that stores a local record after a ShipX shipment is created successfully. This makes shipment data available outside of `fulfillment.data` and gives the admin API a stable source for list/detail views and status synchronization.
+
+Local shipment history is recorded asynchronously: after Medusa creates an order fulfillment, the plugin listens to the `order.fulfillment_created` event, reads the InPost shipment data from `fulfillment.data`, and upserts an `InpostShipment` record.
+
+Stored fields include:
+
+- `order_id`
+- `fulfillment_id`
+- `shipment_id`
+- `tracking_number`
+- `service_type`
+- `status`
+- `label_format`
+- `dispatch_order_id`
+- `last_synced_at`
+- `last_error`
+- `raw_response`
+
+### Admin API
+
+The following admin routes are available:
+
+| Method   | Path                                      | Description                       |
+| -------- | ----------------------------------------- | --------------------------------- |
+| `GET`    | `/admin/inpost/shipments`                 | List local InPost shipments       |
+| `GET`    | `/admin/inpost/shipments/:id`             | Retrieve one local shipment       |
+| `POST`   | `/admin/inpost/shipments/:id/refresh`     | Refresh shipment status from ShipX |
+| `GET`    | `/admin/inpost/shipments/:id/label`       | Download shipment label           |
+| `DELETE` | `/admin/inpost/shipments/:id`             | Cancel shipment in ShipX if allowed |
+
+List filters: `order_id`, `fulfillment_id`, `shipment_id`, `tracking_number`, `status`, `limit`, and `offset`.
+
+Label download accepts an optional `format` query parameter:
+
+```txt
+/admin/inpost/shipments/:id/label?format=pdf
+/admin/inpost/shipments/:id/label?format=zpl
+```
+
+Active shipments are synchronized every 15 minutes by the `sync-inpost-shipments` scheduled job.
 
 ## How it works
 
@@ -194,6 +259,7 @@ For locker shipments, a parcel template (`small`, `medium`, or `large`) is used 
 2. **Offer handling** — for prepaid accounts, the plugin polls for offers, selects the first available one, and purchases it
 3. **Dispatch order** (courier only) — creates a dispatch order to schedule courier pickup from the sender's address
 4. **Return data** — stores `shipment_id`, `tracking_number`, and `dispatch_order_id` in the fulfillment data
+5. **Local history** — after Medusa emits `order.fulfillment_created`, the plugin upserts an `InpostShipment` record in the `inpost` module
 
 ### Cancellation
 

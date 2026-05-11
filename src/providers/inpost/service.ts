@@ -51,7 +51,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
   private logger: Logger;
   private options: InPostPluginOptions;
 
-  constructor({ logger }: InjectedDependencies, options: InPostPluginOptions) {
+  constructor(dependencies: InjectedDependencies, options: InPostPluginOptions) {
     super();
 
     if (!options.apiToken) {
@@ -67,7 +67,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
       );
     }
 
-    this.logger = logger;
+    this.logger = dependencies.logger;
     this.options = options;
     this.client = new InPostShipXClient(options);
   }
