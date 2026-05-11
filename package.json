@@ -40,7 +40,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bystrol/medusa-inpost-fulfillment.git"
+    "url": "git+https://github.com/Bystrol/medusa-inpost-fulfillment.git"
   },
   "engines": {
     "node": ">=20"
