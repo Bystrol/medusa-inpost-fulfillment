@@ -7,10 +7,22 @@ import {
   canCancelInPostShipmentViaApi,
 } from "../../lib/admin-shipments";
 import { InPostShipXClient } from "../../lib/client";
+import {
+  CreateInPostReturnInput,
+  CreateInPostReturnItemInput,
+  InPostLocalReturnItemRecord,
+  InPostLocalReturnRecord,
+  UpdateInPostReturnInput,
+  UpdateInPostReturnItemInput,
+} from "../../lib/returns";
 import { InPostLabelFormat, InPostPluginOptions } from "../../lib/types";
+import InpostReturn from "./models/inpost-return";
+import InpostReturnItem from "./models/inpost-return-item";
 import InpostShipment from "./models/inpost-shipment";
 
 export type InPostShipmentRecord = InPostLocalShipmentRecord<Date>;
+export type InPostReturnRecord = InPostLocalReturnRecord<Date>;
+export type InPostReturnItemRecord = InPostLocalReturnItemRecord<Date>;
 
 type InjectedDependencies = {
   logger: Logger;
@@ -42,6 +54,55 @@ type InPostShipmentCrud = {
   ): Promise<InPostShipmentRecord>;
 };
 
+type InPostReturnCrud = {
+  createInpostReturns(
+    data: CreateInPostReturnInput
+  ): Promise<InPostReturnRecord>;
+  listInpostReturns(
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ): Promise<InPostReturnRecord[]>;
+  listAndCountInpostReturns(
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ): Promise<[InPostReturnRecord[], number]>;
+  retrieveInpostReturn(
+    id: string,
+    config?: Record<string, unknown>
+  ): Promise<InPostReturnRecord>;
+  updateInpostReturns(
+    data:
+      | UpdateInPostReturnInput
+      | {
+          selector: Record<string, unknown>;
+          data: Partial<CreateInPostReturnInput>;
+        }
+  ): Promise<InPostReturnRecord>;
+  createInpostReturnItems(
+    data: CreateInPostReturnItemInput | CreateInPostReturnItemInput[]
+  ): Promise<InPostReturnItemRecord | InPostReturnItemRecord[]>;
+  listInpostReturnItems(
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ): Promise<InPostReturnItemRecord[]>;
+  listAndCountInpostReturnItems(
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ): Promise<[InPostReturnItemRecord[], number]>;
+  retrieveInpostReturnItem(
+    id: string,
+    config?: Record<string, unknown>
+  ): Promise<InPostReturnItemRecord>;
+  updateInpostReturnItems(
+    data:
+      | UpdateInPostReturnItemInput
+      | {
+          selector: Record<string, unknown>;
+          data: Partial<CreateInPostReturnItemInput>;
+        }
+  ): Promise<InPostReturnItemRecord>;
+};
+
 const FINAL_STATUSES: ReadonlySet<string> = new Set(
   INPOST_FINAL_SHIPMENT_STATUSES
 );
@@ -64,6 +125,8 @@ function toShipmentIdNumber(shipmentId: string): number {
 }
 
 class InPostModuleService extends MedusaService({
+  InpostReturn,
+  InpostReturnItem,
   InpostShipment,
 }) {
   private client: InPostShipXClient;
@@ -91,6 +154,10 @@ class InPostModuleService extends MedusaService({
 
   private crud(): InPostShipmentCrud {
     return this as unknown as InPostShipmentCrud;
+  }
+
+  private returnCrud(): InPostReturnCrud {
+    return this as unknown as InPostReturnCrud;
   }
 
   async upsertShipmentFromFulfillment(
@@ -209,6 +276,43 @@ class InPostModuleService extends MedusaService({
 
   async retrieveShipment(id: string): Promise<InPostShipmentRecord> {
     return this.crud().retrieveInpostShipment(id);
+  }
+
+  async createReturn(input: CreateInPostReturnInput): Promise<InPostReturnRecord> {
+    return this.returnCrud().createInpostReturns({
+      status: "requested",
+      ...input,
+    });
+  }
+
+  async updateReturn(input: UpdateInPostReturnInput): Promise<InPostReturnRecord> {
+    return this.returnCrud().updateInpostReturns(input);
+  }
+
+  async retrieveReturn(id: string): Promise<InPostReturnRecord> {
+    return this.returnCrud().retrieveInpostReturn(id);
+  }
+
+  async listReturns(
+    filters: Record<string, unknown> = {},
+    config: Record<string, unknown> = {}
+  ): Promise<[InPostReturnRecord[], number]> {
+    return this.returnCrud().listAndCountInpostReturns(filters, config);
+  }
+
+  async createReturnItems(
+    input: CreateInPostReturnItemInput[]
+  ): Promise<InPostReturnItemRecord[]> {
+    const items = await this.returnCrud().createInpostReturnItems(input);
+    return Array.isArray(items) ? items : [items];
+  }
+
+  async listReturnItems(
+    inpostReturnId: string
+  ): Promise<InPostReturnItemRecord[]> {
+    return this.returnCrud().listInpostReturnItems({
+      inpost_return_id: inpostReturnId,
+    });
   }
 }
 
