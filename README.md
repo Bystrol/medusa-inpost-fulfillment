@@ -236,11 +236,22 @@ The following admin routes are available:
 | -------- | ----------------------------------------- | --------------------------------- |
 | `GET`    | `/admin/inpost/shipments`                 | List local InPost shipments       |
 | `GET`    | `/admin/inpost/shipments/:id`             | Retrieve one local shipment       |
-| `POST`   | `/admin/inpost/shipments/:id/refresh`     | Refresh shipment status from ShipX |
+| `POST`   | `/admin/inpost/shipments/:id/refresh`     | Refresh shipment data from ShipX |
 | `GET`    | `/admin/inpost/shipments/:id/label`       | Download shipment label           |
 | `DELETE` | `/admin/inpost/shipments/:id`             | Cancel shipment in ShipX if allowed |
 
-List filters: `order_id`, `fulfillment_id`, `shipment_id`, `tracking_number`, `status`, `limit`, and `offset`.
+List filters: `order_id`, `fulfillment_id`, `shipment_id`, `tracking_number`, `q`, `status`, `service_type`, `state`, `errors`, `date_from`, `date_to`, `limit`, and `offset`.
+
+Supported list filter values:
+
+| Query param    | Description                                      |
+| -------------- | ------------------------------------------------ |
+| `q`            | Searches order ID, fulfillment ID, shipment ID, tracking number, and dispatch order ID |
+| `service_type` | `inpost_locker_standard` or `inpost_courier_standard` |
+| `state`        | `active` or `canceled`                           |
+| `errors`       | `with` or `without`                              |
+| `date_from`    | Shipment creation date lower bound, `YYYY-MM-DD` |
+| `date_to`      | Shipment creation date upper bound, `YYYY-MM-DD` |
 
 Label download accepts an optional `format` query parameter:
 
@@ -250,6 +261,22 @@ Label download accepts an optional `format` query parameter:
 ```
 
 Active shipments are synchronized every 15 minutes by the `sync-inpost-shipments` scheduled job.
+
+### Admin UI
+
+The plugin adds an Admin UI extension under **InPost**. The shipments view uses the plugin Admin API and lets store staff:
+
+- browse locally recorded InPost shipments,
+- search by order ID, fulfillment ID, ShipX shipment ID, tracking number, receiver, or destination,
+- filter by status, service type, and sync errors,
+- refresh shipment data from ShipX,
+- download PDF or ZPL labels,
+- open public InPost tracking,
+- copy the tracking number,
+- cancel cancellable shipments,
+- inspect the raw ShipX response.
+
+The plugin also adds an order details widget showing InPost shipments recorded for the current order.
 
 ## How it works
 
@@ -265,7 +292,17 @@ Active shipments are synchronized every 15 minutes by the `sync-inpost-shipments
 
 When a fulfillment is cancelled in Medusa, the plugin attempts to cancel the corresponding shipment in InPost.
 
-> **Important:** InPost only allows cancelling shipments that are still in `created` or `offers_prepared` status. Once a shipment has been confirmed (label purchased/dispatch order issued), the InPost API will reject the cancel request. In that case, the plugin logs a warning and lets Medusa mark the fulfillment cancelled **locally only** — the physical shipment must be cancelled manually in [InPost Manager](https://manager.paczkomaty.pl) (for locker shipments) or [WebTrucker](https://kurier.inpost.pl) (for courier shipments).
+ShipX cancellation is only possible before the shipment is confirmed. The plugin treats the following statuses as cancellable through the API:
+
+- `created`
+- `offers_prepared`
+- `offer_selected`
+
+Once a shipment reaches `confirmed`, ShipX rejects cancellation with `invalid_action`. In that case, the plugin does not call the cancellation endpoint and lets Medusa cancel the fulfillment locally only. The physical shipment must then be cancelled manually in [InPost Manager](https://manager.paczkomaty.pl) for locker shipments or [WebTrucker](https://kurier.inpost.pl) for courier shipments.
+
+The Admin UI disables the **Cancel shipment** action for non-cancellable statuses and shows a tooltip explaining that the shipment must be cancelled manually in InPost.
+
+See the official InPost ShipX cancellation docs: [Anulowanie przesyłki](https://dokumentacja-inpost.atlassian.net/wiki/spaces/PL/pages/11731070).
 
 ### Labels
 

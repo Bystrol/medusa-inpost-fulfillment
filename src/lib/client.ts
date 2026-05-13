@@ -1,5 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils";
 import {
+  InPostAddress,
+  InPostDispatchOrderResponse,
   InPostLabelFormat,
   InPostPluginOptions,
   InPostShipmentRequest,
@@ -135,16 +137,10 @@ export class InPostShipXClient {
 
   async createDispatchOrder(
     shipmentIds: number[],
-    address: {
-      street: string;
-      building_number: string;
-      city: string;
-      post_code: string;
-      country_code?: string;
-    },
+    address: InPostAddress,
     comment?: string
-  ): Promise<{ id: number; status: string }> {
-    return this.request<{ id: number; status: string }>(
+  ): Promise<InPostDispatchOrderResponse> {
+    return this.request<InPostDispatchOrderResponse>(
       "POST",
       `/v1/organizations/${this.organizationId}/dispatch_orders`,
       {

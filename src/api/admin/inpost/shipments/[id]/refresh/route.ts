@@ -2,10 +2,10 @@ import {
   MedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { refreshInPostShipmentWorkflow } from "../../../../../../workflows/refresh-inpost-shipment"
+import { refreshInPostShipmentDataWorkflow } from "../../../../../../workflows/refresh-inpost-shipment"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { result } = await refreshInPostShipmentWorkflow(req.scope).run({
+  const { result } = await refreshInPostShipmentDataWorkflow(req.scope).run({
     input: {
       id: req.params.id,
     },

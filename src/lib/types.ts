@@ -51,6 +51,8 @@ export enum InPostService {
   inpost_courier_standard = "inpost_courier_standard",
 }
 
+export type InPostServiceType = InPostService | (string & {})
+
 export interface InPostShipmentRequest {
   receiver: InPostPerson
   sender?: InPostPerson
@@ -86,4 +88,9 @@ export interface InPostShipmentResponse {
   selected_offer?: InPostOffer
   created_at?: string
   updated_at?: string
+}
+
+export interface InPostDispatchOrderResponse {
+  id: number
+  status: string
 }

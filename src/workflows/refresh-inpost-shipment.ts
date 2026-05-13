@@ -3,14 +3,14 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import {
-  refreshInPostShipmentStep,
-  RefreshInPostShipmentStepInput,
+  refreshInPostShipmentDataStep,
+  RefreshInPostShipmentDataStepInput,
 } from "./steps/refresh-inpost-shipment"
 
-export const refreshInPostShipmentWorkflow = createWorkflow(
+export const refreshInPostShipmentDataWorkflow = createWorkflow(
   "refresh-inpost-shipment-workflow",
-  function (input: RefreshInPostShipmentStepInput) {
-    const shipment = refreshInPostShipmentStep(input)
+  function (input: RefreshInPostShipmentDataStepInput) {
+    const shipment = refreshInPostShipmentDataStep(input)
 
     return new WorkflowResponse(shipment)
   }

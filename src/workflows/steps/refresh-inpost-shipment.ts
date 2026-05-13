@@ -2,15 +2,15 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import InPostModuleService from "../../modules/inpost/service"
 import { INPOST_MODULE } from "../../modules/inpost"
 
-export type RefreshInPostShipmentStepInput = {
+export type RefreshInPostShipmentDataStepInput = {
   id: string
 }
 
-export const refreshInPostShipmentStep = createStep(
+export const refreshInPostShipmentDataStep = createStep(
   "refresh-inpost-shipment",
-  async (input: RefreshInPostShipmentStepInput, { container }) => {
+  async (input: RefreshInPostShipmentDataStepInput, { container }) => {
     const inpostService = container.resolve<InPostModuleService>(INPOST_MODULE)
-    const shipment = await inpostService.refreshShipmentStatus(input.id)
+    const shipment = await inpostService.refreshShipmentData(input.id)
 
     return new StepResponse(shipment)
   }

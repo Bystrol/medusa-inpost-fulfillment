@@ -14,6 +14,11 @@
   "exports": {
     ".": "./.medusa/server/src/index.js",
     "./package.json": "./package.json",
+    "./admin": {
+      "import": "./.medusa/server/src/admin/index.mjs",
+      "require": "./.medusa/server/src/admin/index.js",
+      "default": "./.medusa/server/src/admin/index.js"
+    },
     "./providers/*": "./.medusa/server/src/providers/*/index.js",
     "./modules/*": "./.medusa/server/src/modules/*/index.js",
     "./.medusa/server/src/modules/*": "./.medusa/server/src/modules/*/index.js"
@@ -30,15 +35,48 @@
     "test": "node --test -r ts-node/register src/lib/__tests__/*.test.ts"
   },
   "devDependencies": {
+    "@medusajs/admin-sdk": "2.13.5",
     "@medusajs/cli": "^2.5.0",
     "@medusajs/framework": "^2.5.0",
+    "@medusajs/icons": "2.13.5",
     "@medusajs/medusa": "^2.5.0",
+    "@medusajs/ui": "4.1.5",
     "@swc/core": "^1.7.28",
+    "@types/react": "^18.3.28",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.30.3",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "@medusajs/framework": "^2.5.0"
+    "@medusajs/admin-sdk": "^2.13.5",
+    "@medusajs/framework": "^2.5.0",
+    "@medusajs/icons": "^2.13.5",
+    "@medusajs/ui": "^4.1.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3"
+  },
+  "peerDependenciesMeta": {
+    "@medusajs/admin-sdk": {
+      "optional": true
+    },
+    "@medusajs/icons": {
+      "optional": true
+    },
+    "@medusajs/ui": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "react-router-dom": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",

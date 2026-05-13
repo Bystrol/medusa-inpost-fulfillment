@@ -1,7 +1,7 @@
 import { MedusaContainer } from "@medusajs/framework/types"
 import { INPOST_MODULE } from "../modules/inpost"
 import InPostModuleService from "../modules/inpost/service"
-import { refreshInPostShipmentWorkflow } from "../workflows/refresh-inpost-shipment"
+import { refreshInPostShipmentDataWorkflow } from "../workflows/refresh-inpost-shipment"
 
 export default async function syncInPostShipmentsJob(
   container: MedusaContainer
@@ -14,7 +14,7 @@ export default async function syncInPostShipmentsJob(
 
     for (const shipment of shipments) {
       try {
-        await refreshInPostShipmentWorkflow(container).run({
+        await refreshInPostShipmentDataWorkflow(container).run({
           input: {
             id: shipment.id,
           },

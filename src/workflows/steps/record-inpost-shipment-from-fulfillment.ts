@@ -2,6 +2,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { Modules } from "@medusajs/framework/utils"
 import { FulfillmentDTO, IFulfillmentModuleService } from "@medusajs/types"
 import { buildInPostShipmentRecord } from "../../lib/shipments"
+import { InPostLabelFormat, InPostServiceType } from "../../lib/types"
 import { INPOST_MODULE } from "../../modules/inpost"
 import InPostModuleService from "../../modules/inpost/service"
 
@@ -13,9 +14,9 @@ export type RecordInPostShipmentFromFulfillmentStepInput = {
 type InPostFulfillmentShipmentData = {
   shipment_id?: number | string
   tracking_number?: string
-  service_type?: string
+  service_type?: InPostServiceType
   status?: string
-  label_format?: "pdf" | "zpl"
+  label_format?: InPostLabelFormat
   dispatch_order_id?: number | string
 }
 

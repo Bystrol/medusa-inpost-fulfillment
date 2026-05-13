@@ -2,6 +2,7 @@ import {
   MedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { buildInPostShipmentListFilters } from "../../../../lib/admin-shipments"
 import { INPOST_MODULE } from "../../../../modules/inpost"
 import InPostModuleService from "../../../../modules/inpost/service"
 
@@ -18,23 +19,25 @@ function toPositiveInteger(value: unknown, fallback: number): number {
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const inpostService = req.scope.resolve<InPostModuleService>(INPOST_MODULE)
   const query = req.query as Record<string, string | undefined>
-  const filters: Record<string, unknown> = {}
-
-  if (query.order_id) {
-    filters.order_id = query.order_id
-  }
-  if (query.fulfillment_id) {
-    filters.fulfillment_id = query.fulfillment_id
-  }
-  if (query.shipment_id) {
-    filters.shipment_id = query.shipment_id
-  }
-  if (query.tracking_number) {
-    filters.tracking_number = query.tracking_number
-  }
-  if (query.status) {
-    filters.status = query.status
-  }
+  const filters = buildInPostShipmentListFilters({
+    order_id: query.order_id,
+    fulfillment_id: query.fulfillment_id,
+    shipment_id: query.shipment_id,
+    tracking_number: query.tracking_number,
+    q: query.q,
+    status: query.status,
+    service_type: query.service_type,
+    state:
+      query.state === "active" || query.state === "canceled"
+        ? query.state
+        : undefined,
+    errors:
+      query.errors === "with" || query.errors === "without"
+        ? query.errors
+        : undefined,
+    date_from: query.date_from,
+    date_to: query.date_to,
+  })
 
   const limit = Math.min(toPositiveInteger(query.limit, 20), 100)
   const offset = Math.max(toPositiveInteger(query.offset, 0), 0)
