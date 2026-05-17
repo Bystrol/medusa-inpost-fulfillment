@@ -1,5 +1,6 @@
 export const INPOST_RETURN_STATUSES = [
   "requested",
+  "submitted",
   "created",
   "failed",
   "canceled",
@@ -107,4 +108,25 @@ export type InPostReturnSessionResponse<TDate = Date | string> = {
 export type InPostReturnLookupResponse = {
   success: true
   message: string
+}
+
+export type SubmitInPostReturnItemInput = {
+  order_line_item_id: string
+  quantity: number
+  reason?: string | null
+}
+
+export type SubmittedInPostReturn<TDate = Date | string> = {
+  id: string
+  order_id: string
+  customer_email: string
+  status: InPostReturnStatus
+  return_method: InPostReturnMethod
+  created_at?: TDate
+  updated_at?: TDate
+}
+
+export type SubmitInPostReturnResponse<TDate = Date | string> = {
+  return_request: SubmittedInPostReturn<TDate>
+  items: InPostLocalReturnItemRecord<TDate>[]
 }

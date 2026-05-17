@@ -24,6 +24,21 @@ export type GetInPostReturnSessionSchema = z.infer<
   typeof GetInPostReturnSessionSchema
 >
 
+export const SubmitInPostReturnSchema = z.object({
+  token: z.string().trim().min(32),
+  items: z
+    .array(
+      z.object({
+        order_line_item_id: z.string().trim().min(1),
+        quantity: z.number().int().positive(),
+        reason: z.string().trim().min(1).max(500).optional(),
+      })
+    )
+    .min(1),
+})
+
+export type SubmitInPostReturnSchema = z.infer<typeof SubmitInPostReturnSchema>
+
 export const storeInPostReturnMiddlewares: MiddlewareRoute[] = [
   {
     matcher: "/store/inpost/returns/lookup",
@@ -39,5 +54,10 @@ export const storeInPostReturnMiddlewares: MiddlewareRoute[] = [
         isList: false,
       }),
     ],
+  },
+  {
+    matcher: "/store/inpost/returns",
+    method: "POST",
+    middlewares: [validateAndTransformBody(SubmitInPostReturnSchema)],
   },
 ]

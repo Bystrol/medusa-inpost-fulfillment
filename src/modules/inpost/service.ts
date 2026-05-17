@@ -317,11 +317,10 @@ class InPostModuleService extends MedusaService({
   }
 
   async listReturnItems(
-    inpostReturnId: string
+    filters: Record<string, unknown>,
+    config: Record<string, unknown> = {}
   ): Promise<InPostReturnItemRecord[]> {
-    return this.returnCrud().listInpostReturnItems({
-      inpost_return_id: inpostReturnId,
-    });
+    return this.returnCrud().listInpostReturnItems(filters, config);
   }
 }
 

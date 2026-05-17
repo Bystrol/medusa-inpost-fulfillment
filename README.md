@@ -321,6 +321,7 @@ The plugin includes the first part of a self-service return flow:
 | ------ | ---- | ----------- |
 | `POST` | `/store/inpost/returns/lookup` | Looks up an order by `order_id` and `email`, then prepares a hashed return-session token if the order matches |
 | `GET` | `/store/inpost/returns/session?token=...` | Validates a return-session token and returns safe order/item data for the return UI |
+| `POST` | `/store/inpost/returns` | Submits a local return request from an active return-session token |
 
 Lookup request body:
 
@@ -333,6 +334,23 @@ Lookup request body:
 ```
 
 `return_method` is optional and defaults to `locker`.
+
+Submit return request body:
+
+```json
+{
+  "token": "return-session-token",
+  "items": [
+    {
+      "order_line_item_id": "ordli_...",
+      "quantity": 1,
+      "reason": "Wrong size"
+    }
+  ]
+}
+```
+
+The submit endpoint validates that the token is active, the requested items belong to the order, the quantities are returnable, and the same line items have not already been submitted in another active InPost return. On success, the local return moves to `submitted` and the selected items are stored in `inpost_return_item`.
 
 The lookup endpoint always returns the same neutral response, so it does not reveal whether an order exists. The raw token is never stored; only a SHA-256 hash and expiration date are saved in `inpost_return`.
 

@@ -6,3 +6,4 @@ dist
 .agents
 .claude
 PLAN.md
+*.tgz
