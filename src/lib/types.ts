@@ -4,6 +4,7 @@ export interface InPostPluginOptions {
   sandbox?: boolean
   defaultParcelTemplate?: "small" | "medium" | "large"
   defaultLabelFormat?: InPostLabelFormat
+  returnTokenTtlMinutes?: number
   sender?: InPostPerson
 }
 

@@ -75,3 +75,36 @@ export type UpdateInPostReturnItemInput =
   Partial<CreateInPostReturnItemInput> & {
     id: string
   }
+
+export type InPostReturnSessionOrderItem = {
+  id: string
+  title: string
+  subtitle?: string | null
+  thumbnail?: string | null
+  quantity: number
+  return_requested_quantity?: number
+  return_received_quantity?: number
+}
+
+export type InPostReturnSessionOrder = {
+  id: string
+  display_id?: number
+  custom_display_id?: string | null
+  email?: string
+  items: InPostReturnSessionOrderItem[]
+}
+
+export type InPostReturnSessionResponse<TDate = Date | string> = {
+  id: string
+  order_id: string
+  customer_email: string
+  status: InPostReturnStatus
+  return_method: InPostReturnMethod
+  token_expires_at: TDate | null
+  order: InPostReturnSessionOrder
+}
+
+export type InPostReturnLookupResponse = {
+  success: true
+  message: string
+}

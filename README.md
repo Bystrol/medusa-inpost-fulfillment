@@ -76,6 +76,9 @@ const inpostOptions = {
   // "pdf" | "zpl" (default: "pdf")
   defaultLabelFormat: "pdf",
 
+  // Optional — return session token lifetime in minutes (default: 60)
+  returnTokenTtlMinutes: 60,
+
   // Required for courier shipments — sender details
   sender: {
     company_name: "My Store",
@@ -310,7 +313,30 @@ The plugin supports retrieving shipment labels as PDF documents through Medusa's
 
 ### Returns
 
-Return shipments are not created automatically — they should be created manually in InPost Manager, as Medusa's return flow does not provide sufficient data (e.g., target locker for locker returns).
+Medusa's default fulfillment-provider return flow does not provide enough data to create a full InPost return shipment automatically (for example, it does not include the customer's selected return locker). For that native Medusa flow, `createReturnFulfillment` intentionally does not call ShipX.
+
+The plugin includes the first part of a self-service return flow:
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| `POST` | `/store/inpost/returns/lookup` | Looks up an order by `order_id` and `email`, then prepares a hashed return-session token if the order matches |
+| `GET` | `/store/inpost/returns/session?token=...` | Validates a return-session token and returns safe order/item data for the return UI |
+
+Lookup request body:
+
+```json
+{
+  "order_id": "order_...",
+  "email": "customer@example.com",
+  "return_method": "locker"
+}
+```
+
+`return_method` is optional and defaults to `locker`.
+
+The lookup endpoint always returns the same neutral response, so it does not reveal whether an order exists. The raw token is never stored; only a SHA-256 hash and expiration date are saved in `inpost_return`.
+
+Email delivery of the magic link and actual ShipX return shipment creation are not implemented yet. Those are planned as the next return-flow steps.
 
 ## Options reference
 

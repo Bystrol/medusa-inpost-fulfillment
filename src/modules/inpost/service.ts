@@ -7,6 +7,7 @@ import {
   canCancelInPostShipmentViaApi,
 } from "../../lib/admin-shipments";
 import { InPostShipXClient } from "../../lib/client";
+import { normalizeReturnTokenTtlMinutes } from "../../lib/return-sessions";
 import {
   CreateInPostReturnInput,
   CreateInPostReturnItemInput,
@@ -131,6 +132,7 @@ class InPostModuleService extends MedusaService({
 }) {
   private client: InPostShipXClient;
   private logger: Logger;
+  private returnTokenTtlMinutes: number;
 
   constructor(deps: InjectedDependencies, options: InPostPluginOptions) {
     super(...arguments);
@@ -150,6 +152,9 @@ class InPostModuleService extends MedusaService({
 
     this.logger = deps.logger;
     this.client = new InPostShipXClient(options);
+    this.returnTokenTtlMinutes = normalizeReturnTokenTtlMinutes(
+      options.returnTokenTtlMinutes
+    );
   }
 
   private crud(): InPostShipmentCrud {
@@ -276,6 +281,10 @@ class InPostModuleService extends MedusaService({
 
   async retrieveShipment(id: string): Promise<InPostShipmentRecord> {
     return this.crud().retrieveInpostShipment(id);
+  }
+
+  getReturnTokenTtlMinutes(): number {
+    return this.returnTokenTtlMinutes;
   }
 
   async createReturn(input: CreateInPostReturnInput): Promise<InPostReturnRecord> {
