@@ -24,6 +24,14 @@ export type GetInPostReturnSessionSchema = z.infer<
   typeof GetInPostReturnSessionSchema
 >
 
+export const GetInPostReturnDocumentSchema = z.object({
+  token: z.string().trim().min(32),
+})
+
+export type GetInPostReturnDocumentSchema = z.infer<
+  typeof GetInPostReturnDocumentSchema
+>
+
 export const SubmitInPostReturnSchema = z.object({
   token: z.string().trim().min(32),
   items: z
@@ -50,6 +58,16 @@ export const storeInPostReturnMiddlewares: MiddlewareRoute[] = [
     method: "GET",
     middlewares: [
       validateAndTransformQuery(GetInPostReturnSessionSchema, {
+        defaults: [],
+        isList: false,
+      }),
+    ],
+  },
+  {
+    matcher: "/store/inpost/returns/:id/documents",
+    method: "GET",
+    middlewares: [
+      validateAndTransformQuery(GetInPostReturnDocumentSchema, {
         defaults: [],
         isList: false,
       }),

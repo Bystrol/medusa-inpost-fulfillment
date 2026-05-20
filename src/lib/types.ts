@@ -35,6 +35,7 @@ export interface InPostReturnsOptions {
   clientId?: string
   clientSecret?: string
   defaultParcelSize?: InPostReturnParcelSize
+  magicLinkBaseUrl?: string
   receiver?: InPostReturnsReceiver
   description?: string
 }

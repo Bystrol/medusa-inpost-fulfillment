@@ -8,6 +8,9 @@ export const INPOST_RETURN_STATUSES = [
 
 export const INPOST_RETURN_METHODS = ["locker", "point", "courier"] as const
 
+export const INPOST_RETURN_SESSION_CREATED_EVENT =
+  "inpost.return_session_created"
+
 export type InPostReturnStatus =
   | (typeof INPOST_RETURN_STATUSES)[number]
   | (string & {})
@@ -109,6 +112,12 @@ export type InPostReturnSessionResponse<TDate = Date | string> = {
   customer_email: string
   status: InPostReturnStatus
   return_method: InPostReturnMethod
+  return_id: string | null
+  tracking_number: string | null
+  return_code: string | null
+  label_url: string | null
+  return_size: string | null
+  return_expires_at: TDate | null
   token_expires_at: TDate | null
   order: InPostReturnSessionOrder
 }
@@ -116,6 +125,15 @@ export type InPostReturnSessionResponse<TDate = Date | string> = {
 export type InPostReturnLookupResponse = {
   success: true
   message: string
+}
+
+export type InPostReturnSessionCreatedEvent = {
+  email: string
+  order_id: string
+  inpost_return_id: string
+  return_method: InPostReturnMethod
+  magic_link: string
+  token_expires_at: Date | string | null
 }
 
 export type SubmitInPostReturnItemInput = {

@@ -306,10 +306,48 @@ class InPostModuleService extends MedusaService({
     return this.options.returns?.description;
   }
 
+  getReturnMagicLinkBaseUrl(): string | undefined {
+    return this.options.returns?.magicLinkBaseUrl;
+  }
+
   async createReturnTicket(
     input: InPostCreateReturnTicketRequest
   ): Promise<InPostCreateReturnTicketResponse> {
     return this.returnsClient.createReturnTicket(input);
+  }
+
+  async getReturnLabel(id: string): Promise<{
+    buffer: Buffer;
+    content_type: string;
+    filename: string;
+    return_record: InPostReturnRecord;
+  }> {
+    const returnRecord = await this.retrieveReturn(id);
+
+    if (!returnRecord.return_id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "InPost return ticket has not been created yet"
+      );
+    }
+
+    if (!returnRecord.label_url) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "InPost return label is not available for this return. Use the return code instead."
+      );
+    }
+
+    const buffer = await this.returnsClient.getReturnLabel(
+      returnRecord.return_id
+    );
+
+    return {
+      buffer,
+      content_type: "application/pdf",
+      filename: `inpost-return-label-${returnRecord.return_id}.pdf`,
+      return_record: returnRecord,
+    };
   }
 
   async createReturn(input: CreateInPostReturnInput): Promise<InPostReturnRecord> {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import {
   DEFAULT_RETURN_TOKEN_TTL_MINUTES,
+  buildInPostReturnMagicLink,
   createInPostReturnSessionToken,
   getInPostReturnSessionExpiresAt,
   hashInPostReturnSessionToken,
@@ -33,6 +34,20 @@ describe("InPost return sessions", () => {
     assert.match(token, /^[A-Za-z0-9_-]+$/)
     assert.equal(hash.length, 64)
     assert.equal(hash, hashInPostReturnSessionToken(token))
+  })
+
+  it("builds magic links with the return session token", () => {
+    assert.equal(
+      buildInPostReturnMagicLink("https://store.example.com/returns", "abc123"),
+      "https://store.example.com/returns?token=abc123"
+    )
+    assert.equal(
+      buildInPostReturnMagicLink(
+        "https://store.example.com/returns?source=email",
+        "abc123"
+      ),
+      "https://store.example.com/returns?source=email&token=abc123"
+    )
   })
 
   it("calculates and validates expiration dates", () => {

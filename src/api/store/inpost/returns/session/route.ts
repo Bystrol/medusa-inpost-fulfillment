@@ -52,6 +52,12 @@ function buildReturnSessionResponse(
     customer_email: returnRecord.customer_email,
     status: returnRecord.status,
     return_method: returnRecord.return_method,
+    return_id: returnRecord.return_id,
+    tracking_number: returnRecord.tracking_number,
+    return_code: returnRecord.return_code,
+    label_url: returnRecord.label_url,
+    return_size: returnRecord.return_size,
+    return_expires_at: returnRecord.return_expires_at,
     token_expires_at: returnRecord.token_expires_at,
     order: {
       id: order.id,

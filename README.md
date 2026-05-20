@@ -85,6 +85,7 @@ const inpostOptions = {
     clientId: process.env.INPOST_RETURNS_CLIENT_ID,
     clientSecret: process.env.INPOST_RETURNS_CLIENT_SECRET,
     defaultParcelSize: "A", // "A" | "B" | "C"
+    magicLinkBaseUrl: "https://store.example.com/returns/session",
     description: "Please secure the returned items before shipping.",
   },
 
@@ -329,8 +330,9 @@ The plugin includes the first part of a self-service return flow:
 | Method | Path | Description |
 | ------ | ---- | ----------- |
 | `POST` | `/store/inpost/returns/lookup` | Looks up an order by `order_id` and `email`, then prepares a hashed return-session token if the order matches |
-| `GET` | `/store/inpost/returns/session?token=...` | Validates a return-session token and returns safe order/item data for the return UI |
+| `GET` | `/store/inpost/returns/session?token=...` | Validates a return-session token and returns safe order/item data plus created return-ticket data for the return UI |
 | `POST` | `/store/inpost/returns` | Submits a return request from an active return-session token and creates an InPost return ticket if Returns API credentials are configured |
+| `GET` | `/store/inpost/returns/:id/documents?token=...` | Downloads the return label PDF for an active return session, when the InPost return ticket has a label |
 
 Lookup request body:
 
@@ -368,11 +370,65 @@ Depending on the InPost Returns Portal settings for your account, the response c
 - `tracking_number` — return shipment tracking number
 - `return_expires_at` — return ticket expiration date
 
+If the return response contains a `label_url`, the storefront can download the label through:
+
+```bash
+curl "http://localhost:9000/store/inpost/returns/RETURN_ID/documents?token=RETURN_SESSION_TOKEN" \
+  -H "x-publishable-api-key: pk_..."
+```
+
+The endpoint validates that the token belongs to the requested return and is still active. If your InPost Returns Portal account is configured for code-only returns, `label_url` is empty and this endpoint returns a `not_found` error; show the `return_code` to the customer instead.
+
 If the InPost Returns API call fails, the local return is marked as `failed` and `last_error` stores the API error. Retrying the same request with the same active token reuses the existing local return items and attempts ticket creation again.
 
 The lookup endpoint always returns the same neutral response, so it does not reveal whether an order exists. The raw token is never stored; only a SHA-256 hash and expiration date are saved in `inpost_return`.
 
-Email delivery of the magic link is not implemented yet. Until that is added, the lookup token must be delivered by your storefront or another application layer.
+If `returns.magicLinkBaseUrl` is configured and the lookup data matches an order, the plugin emits an `inpost.return_session_created` event. The event contains a ready-to-send magic link with the token added as a `token` query parameter.
+
+Event payload:
+
+```ts
+type InPostReturnSessionCreatedEvent = {
+  email: string
+  order_id: string
+  inpost_return_id: string
+  return_method: "locker" | "point" | "courier" | (string & {})
+  magic_link: string
+  token_expires_at: Date | string | null
+}
+```
+
+The plugin does not send emails directly. Add a subscriber in your Medusa app and call your email or notification provider from there:
+
+```ts
+import { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
+type InPostReturnSessionCreatedEvent = {
+  email: string
+  order_id: string
+  inpost_return_id: string
+  return_method: string
+  magic_link: string
+  token_expires_at: string | Date | null
+}
+
+export default async function sendInPostReturnMagicLink({
+  event: { data },
+  container,
+}: SubscriberArgs<InPostReturnSessionCreatedEvent>) {
+  const logger = container.resolve("logger")
+
+  logger.info(
+    `Send InPost return magic link for order ${data.order_id} to ${data.email}: ${data.magic_link}`
+  )
+
+  // Call your email provider here.
+}
+
+export const config: SubscriberConfig = {
+  event: "inpost.return_session_created",
+}
+```
 
 ## Options reference
 
@@ -387,6 +443,7 @@ Email delivery of the magic link is not implemented yet. Until that is added, th
 | `returns.clientId`      | `string`                         | For returns | —         | InPost Returns REST API OAuth client ID         |
 | `returns.clientSecret`  | `string`                         | For returns | —         | InPost Returns REST API OAuth client secret     |
 | `returns.defaultParcelSize` | `"A" \| "B" \| "C"`          | No          | account default | Default parcel size for return tickets     |
+| `returns.magicLinkBaseUrl` | `string`                      | No          | —         | Absolute storefront URL used to build return-session magic links |
 | `returns.receiver`      | `object`                         | No          | account default | Receiver override for return tickets            |
 | `returns.description`   | `string`                         | No          | —         | Description shown to the return sender          |
 | `sender`                | `object`                         | For courier | —         | Sender details (required for courier shipments) |
