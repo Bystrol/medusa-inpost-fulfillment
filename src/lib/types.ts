@@ -5,10 +5,39 @@ export interface InPostPluginOptions {
   defaultParcelTemplate?: "small" | "medium" | "large"
   defaultLabelFormat?: InPostLabelFormat
   returnTokenTtlMinutes?: number
+  returns?: InPostReturnsOptions
   sender?: InPostPerson
 }
 
 export type InPostLabelFormat = "pdf" | "zpl"
+
+export type InPostReturnParcelSize = "A" | "B" | "C"
+
+export interface InPostReturnsAddress {
+  buildingNumber: string
+  street: string
+  city: string
+  postalCode: string
+  province?: string
+  countryCode?: string
+}
+
+export interface InPostReturnsReceiver {
+  companyName?: string
+  firstName?: string
+  lastName?: string
+  phone: string
+  email?: string
+  address?: InPostReturnsAddress
+}
+
+export interface InPostReturnsOptions {
+  clientId?: string
+  clientSecret?: string
+  defaultParcelSize?: InPostReturnParcelSize
+  receiver?: InPostReturnsReceiver
+  description?: string
+}
 
 export interface InPostAddress {
   street: string

@@ -9,6 +9,8 @@ import {
 import { InPostShipXClient } from "../../lib/client";
 import { normalizeReturnTokenTtlMinutes } from "../../lib/return-sessions";
 import {
+  InPostCreateReturnTicketRequest,
+  InPostCreateReturnTicketResponse,
   CreateInPostReturnInput,
   CreateInPostReturnItemInput,
   InPostLocalReturnItemRecord,
@@ -16,6 +18,7 @@ import {
   UpdateInPostReturnInput,
   UpdateInPostReturnItemInput,
 } from "../../lib/returns";
+import { InPostReturnsClient } from "../../lib/returns-client";
 import { InPostLabelFormat, InPostPluginOptions } from "../../lib/types";
 import InpostReturn from "./models/inpost-return";
 import InpostReturnItem from "./models/inpost-return-item";
@@ -131,6 +134,8 @@ class InPostModuleService extends MedusaService({
   InpostShipment,
 }) {
   private client: InPostShipXClient;
+  private returnsClient: InPostReturnsClient;
+  private options: InPostPluginOptions;
   private logger: Logger;
   private returnTokenTtlMinutes: number;
 
@@ -151,7 +156,9 @@ class InPostModuleService extends MedusaService({
     }
 
     this.logger = deps.logger;
+    this.options = options;
     this.client = new InPostShipXClient(options);
+    this.returnsClient = new InPostReturnsClient(options);
     this.returnTokenTtlMinutes = normalizeReturnTokenTtlMinutes(
       options.returnTokenTtlMinutes
     );
@@ -285,6 +292,24 @@ class InPostModuleService extends MedusaService({
 
   getReturnTokenTtlMinutes(): number {
     return this.returnTokenTtlMinutes;
+  }
+
+  getDefaultReturnParcelSize(): string | undefined {
+    return this.options.returns?.defaultParcelSize;
+  }
+
+  getReturnReceiver(): InPostCreateReturnTicketRequest["shipment"]["receiver"] {
+    return this.options.returns?.receiver;
+  }
+
+  getReturnDescription(): string | undefined {
+    return this.options.returns?.description;
+  }
+
+  async createReturnTicket(
+    input: InPostCreateReturnTicketRequest
+  ): Promise<InPostCreateReturnTicketResponse> {
+    return this.returnsClient.createReturnTicket(input);
   }
 
   async createReturn(input: CreateInPostReturnInput): Promise<InPostReturnRecord> {

@@ -5,7 +5,10 @@ import {
   hashInPostReturnSessionToken,
   isInPostReturnSessionActive,
 } from "../../lib/return-sessions"
-import { SubmitInPostReturnItemInput } from "../../lib/returns"
+import {
+  InPostReturnsSender,
+  SubmitInPostReturnItemInput,
+} from "../../lib/returns"
 import { INPOST_MODULE } from "../../modules/inpost"
 import InPostModuleService, {
   InPostReturnItemRecord,
@@ -24,10 +27,76 @@ export type ValidatedInPostReturnRequestItem = SubmitInPostReturnItemInput & {
 export type ValidateInPostReturnRequestStepResult = {
   return_record: InPostReturnRecord
   items: ValidatedInPostReturnRequestItem[]
+  sender: InPostReturnsSender
+  external_reference: string
 }
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
+}
+
+function normalizePhoneToE164(phone?: string): string {
+  const value = phone?.trim()
+
+  if (!value) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "InPost return sender phone is required"
+    )
+  }
+
+  if (/^\+[1-9]\d{1,14}$/.test(value)) {
+    return value
+  }
+
+  const digits = value.replace(/\D/g, "")
+
+  if (/^\d{9}$/.test(digits)) {
+    return `+48${digits}`
+  }
+
+  if (/^48\d{9}$/.test(digits)) {
+    return `+${digits}`
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "InPost return sender phone must be in E.164 format or a valid Polish 9-digit phone number"
+  )
+}
+
+function buildSender(order: OrderDTO): InPostReturnsSender {
+  if (!order.email) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "InPost return sender email is required"
+    )
+  }
+
+  if (!order.shipping_address?.first_name) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "InPost return sender first name is required"
+    )
+  }
+
+  if (!order.shipping_address.last_name) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "InPost return sender last name is required"
+    )
+  }
+
+  return {
+    firstName: order.shipping_address.first_name,
+    lastName: order.shipping_address.last_name,
+    phone: normalizePhoneToE164(order.shipping_address.phone),
+    email: order.email,
+  }
+}
+
+function buildExternalReference(order: OrderDTO): string {
+  return order.custom_display_id || String(order.display_id || order.id)
 }
 
 function toQuantity(value: unknown): number {
@@ -74,18 +143,23 @@ function assertNoDuplicateInputItems(items: SubmitInPostReturnItemInput[]): void
 
 async function getSubmittedReturnItemsForOrder(
   inpostService: InPostModuleService,
-  orderId: string
+  orderId: string,
+  currentReturnId: string
 ): Promise<InPostReturnItemRecord[]> {
   const [returns] = await inpostService.listReturns(
     {
       order_id: orderId,
-      status: { $ne: "canceled" },
+      status: { $in: ["submitted", "created"] },
     },
     { take: 100 }
   )
   const items: InPostReturnItemRecord[] = []
 
   for (const returnRecord of returns) {
+    if (returnRecord.id === currentReturnId) {
+      continue
+    }
+
     items.push(
       ...(await inpostService.listReturnItems({
         inpost_return_id: returnRecord.id,
@@ -174,7 +248,7 @@ export const validateInPostReturnRequestStep = createStep(
     assertNoDuplicateInputItems(input.items)
 
     const order = await orderService.retrieveOrder(returnRecord.order_id, {
-      relations: ["items"],
+      relations: ["items", "shipping_address"],
     })
 
     if (
@@ -190,7 +264,8 @@ export const validateInPostReturnRequestStep = createStep(
     const orderItemsById = getOrderItemById(order)
     const submittedItems = await getSubmittedReturnItemsForOrder(
       inpostService,
-      returnRecord.order_id
+      returnRecord.order_id,
+      returnRecord.id
     )
 
     assertRequestedItemsBelongToOrder(input.items, orderItemsById)
@@ -200,6 +275,8 @@ export const validateInPostReturnRequestStep = createStep(
     return new StepResponse({
       return_record: returnRecord,
       items: normalizeRequestedItems(input.items),
+      sender: buildSender(order),
+      external_reference: buildExternalReference(order),
     })
   }
 )

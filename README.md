@@ -79,6 +79,15 @@ const inpostOptions = {
   // Optional — return session token lifetime in minutes (default: 60)
   returnTokenTtlMinutes: 60,
 
+  // Optional — enables self-service return tickets through InPost Returns API.
+  // Uses the same sandbox flag as ShipX.
+  returns: {
+    clientId: process.env.INPOST_RETURNS_CLIENT_ID,
+    clientSecret: process.env.INPOST_RETURNS_CLIENT_SECRET,
+    defaultParcelSize: "A", // "A" | "B" | "C"
+    description: "Please secure the returned items before shipping.",
+  },
+
   // Required for courier shipments — sender details
   sender: {
     company_name: "My Store",
@@ -321,7 +330,7 @@ The plugin includes the first part of a self-service return flow:
 | ------ | ---- | ----------- |
 | `POST` | `/store/inpost/returns/lookup` | Looks up an order by `order_id` and `email`, then prepares a hashed return-session token if the order matches |
 | `GET` | `/store/inpost/returns/session?token=...` | Validates a return-session token and returns safe order/item data for the return UI |
-| `POST` | `/store/inpost/returns` | Submits a local return request from an active return-session token |
+| `POST` | `/store/inpost/returns` | Submits a return request from an active return-session token and creates an InPost return ticket if Returns API credentials are configured |
 
 Lookup request body:
 
@@ -350,11 +359,20 @@ Submit return request body:
 }
 ```
 
-The submit endpoint validates that the token is active, the requested items belong to the order, the quantities are returnable, and the same line items have not already been submitted in another active InPost return. On success, the local return moves to `submitted` and the selected items are stored in `inpost_return_item`.
+The submit endpoint validates that the token is active, the requested items belong to the order, the quantities are returnable, and the same line items have not already been submitted in another active InPost return. It stores the selected items in `inpost_return_item`, creates a return ticket through the InPost Returns REST API, and moves the local return to `created`.
+
+Depending on the InPost Returns Portal settings for your account, the response can include:
+
+- `return_code` — code for sending a return without a printed label
+- `label_url` — label URL for labeled return shipments
+- `tracking_number` — return shipment tracking number
+- `return_expires_at` — return ticket expiration date
+
+If the InPost Returns API call fails, the local return is marked as `failed` and `last_error` stores the API error. Retrying the same request with the same active token reuses the existing local return items and attempts ticket creation again.
 
 The lookup endpoint always returns the same neutral response, so it does not reveal whether an order exists. The raw token is never stored; only a SHA-256 hash and expiration date are saved in `inpost_return`.
 
-Email delivery of the magic link and actual ShipX return shipment creation are not implemented yet. Those are planned as the next return-flow steps.
+Email delivery of the magic link is not implemented yet. Until that is added, the lookup token must be delivered by your storefront or another application layer.
 
 ## Options reference
 
@@ -365,6 +383,12 @@ Email delivery of the magic link and actual ShipX return shipment creation are n
 | `sandbox`               | `boolean`                        | No          | `false`   | Use sandbox API environment                     |
 | `defaultParcelTemplate` | `"small" \| "medium" \| "large"` | No          | `"small"` | Default parcel template for locker shipments    |
 | `defaultLabelFormat`    | `"pdf" \| "zpl"`                 | No          | `"pdf"`   | Default label format for shipment documents     |
+| `returnTokenTtlMinutes` | `number`                         | No          | `60`      | Store API return-session token lifetime         |
+| `returns.clientId`      | `string`                         | For returns | —         | InPost Returns REST API OAuth client ID         |
+| `returns.clientSecret`  | `string`                         | For returns | —         | InPost Returns REST API OAuth client secret     |
+| `returns.defaultParcelSize` | `"A" \| "B" \| "C"`          | No          | account default | Default parcel size for return tickets     |
+| `returns.receiver`      | `object`                         | No          | account default | Receiver override for return tickets            |
+| `returns.description`   | `string`                         | No          | —         | Description shown to the return sender          |
 | `sender`                | `object`                         | For courier | —         | Sender details (required for courier shipments) |
 | `sender.company_name`   | `string`                         | For courier | —         | Sender company name                             |
 | `sender.first_name`     | `string`                         | For courier | —         | Sender first name                               |

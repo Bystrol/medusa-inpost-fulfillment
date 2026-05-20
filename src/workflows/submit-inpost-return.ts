@@ -6,6 +6,7 @@ import {
 import { SubmitInPostReturnResponse } from "../lib/returns"
 import { InPostReturnRecord } from "../modules/inpost/service"
 import { createInPostReturnItemsStep } from "./steps/create-inpost-return-items"
+import { createInPostReturnTicketStep } from "./steps/create-inpost-return-ticket"
 import { submitInPostReturnRequestStep } from "./steps/submit-inpost-return-request"
 import {
   validateInPostReturnRequestStep,
@@ -25,10 +26,19 @@ export const submitInPostReturnWorkflow = createWorkflow(
       id: validated.return_record.id,
     }))
     const returnRequest = submitInPostReturnRequestStep(submitInput)
+    const createTicketInput = transform(
+      { returnRequest, validated },
+      ({ returnRequest, validated }) => ({
+        inpost_return_id: returnRequest.id,
+        sender: validated.sender,
+        external_reference: validated.external_reference,
+      })
+    )
+    const ticket = createInPostReturnTicketStep(createTicketInput)
     const response = transform(
-      { returnRequest, items },
-      ({ returnRequest, items }): SubmitInPostReturnResponse => ({
-        return_request: toSubmittedReturn(returnRequest),
+      { ticket, items },
+      ({ ticket, items }): SubmitInPostReturnResponse => ({
+        return_request: toSubmittedReturn(ticket.return_record),
         items,
       })
     )
@@ -44,6 +54,12 @@ function toSubmittedReturn(returnRequest: InPostReturnRecord) {
     customer_email: returnRequest.customer_email,
     status: returnRequest.status,
     return_method: returnRequest.return_method,
+    return_id: returnRequest.return_id,
+    tracking_number: returnRequest.tracking_number,
+    return_code: returnRequest.return_code,
+    label_url: returnRequest.label_url,
+    return_size: returnRequest.return_size,
+    return_expires_at: returnRequest.return_expires_at,
     created_at: returnRequest.created_at,
     updated_at: returnRequest.updated_at,
   }

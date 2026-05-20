@@ -25,6 +25,10 @@ export type InPostLocalReturnRecord<TDate = Date> = {
   return_method: InPostReturnMethod
   inpost_shipment_id: string | null
   tracking_number: string | null
+  return_code: string | null
+  label_url: string | null
+  return_size: string | null
+  return_expires_at: TDate | null
   token_hash: string | null
   token_expires_at: TDate | null
   last_synced_at: TDate | null
@@ -54,6 +58,10 @@ export type CreateInPostReturnInput = {
   return_method: InPostReturnMethod
   inpost_shipment_id?: string | null
   tracking_number?: string | null
+  return_code?: string | null
+  label_url?: string | null
+  return_size?: string | null
+  return_expires_at?: Date | null
   token_hash?: string | null
   token_expires_at?: Date | null
   last_synced_at?: Date | null
@@ -122,6 +130,12 @@ export type SubmittedInPostReturn<TDate = Date | string> = {
   customer_email: string
   status: InPostReturnStatus
   return_method: InPostReturnMethod
+  return_id: string | null
+  tracking_number: string | null
+  return_code: string | null
+  label_url: string | null
+  return_size: string | null
+  return_expires_at: TDate | null
   created_at?: TDate
   updated_at?: TDate
 }
@@ -129,4 +143,45 @@ export type SubmittedInPostReturn<TDate = Date | string> = {
 export type SubmitInPostReturnResponse<TDate = Date | string> = {
   return_request: SubmittedInPostReturn<TDate>
   items: InPostLocalReturnItemRecord<TDate>[]
+}
+
+export type InPostReturnsSender = {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+}
+
+export type InPostCreateReturnTicketRequest = {
+  shipment: {
+    size?: string
+    sender: InPostReturnsSender
+    receiver?: {
+      companyName?: string
+      firstName?: string
+      lastName?: string
+      phone: string
+      email?: string
+      address?: {
+        buildingNumber: string
+        province?: string
+        street: string
+        city: string
+        postalCode: string
+        countryCode?: string
+      }
+    }
+  }
+  expirationDate?: string
+  externalReference?: string
+  description?: string
+}
+
+export type InPostCreateReturnTicketResponse = {
+  id: string
+  size?: string
+  trackingNumber?: string
+  expirationDate?: string
+  code?: string
+  labelUrl?: string
 }
