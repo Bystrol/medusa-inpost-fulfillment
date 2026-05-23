@@ -252,8 +252,13 @@ The following admin routes are available:
 | `POST`   | `/admin/inpost/shipments/:id/refresh`     | Refresh shipment data from ShipX |
 | `GET`    | `/admin/inpost/shipments/:id/label`       | Download shipment label           |
 | `DELETE` | `/admin/inpost/shipments/:id`             | Cancel shipment in ShipX if allowed |
+| `GET`    | `/admin/inpost/returns`                   | List local InPost returns         |
+| `GET`    | `/admin/inpost/returns/:id`               | Retrieve one local return with items |
+| `GET`    | `/admin/inpost/returns/:id/documents`     | Download return label PDF when available |
 
 List filters: `order_id`, `fulfillment_id`, `shipment_id`, `tracking_number`, `q`, `status`, `service_type`, `state`, `errors`, `date_from`, `date_to`, `limit`, and `offset`.
+
+Return list filters: `order_id`, `customer_email`, `return_id`, `tracking_number`, `return_code`, `q`, `status`, `return_method`, `errors`, `date_from`, `date_to`, `limit`, `offset`, `sort_by`, and `sort_order`.
 
 Supported list filter values:
 
