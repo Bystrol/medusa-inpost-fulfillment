@@ -21,10 +21,20 @@ InPost fulfillment provider plugin for [MedusaJS v2](https://medusajs.com/). Int
 - Local InPost shipment history stored in Medusa
 - Admin API for shipment list, details, status refresh, labels, and cancellation
 - Scheduled status synchronization for active shipments
+- Self-service InPost return tickets through the InPost Returns REST API
+- Admin API and Admin UI for return list, details, labels, refresh, and scheduled synchronization
 - Shipment label retrieval (PDF/ZPL)
 - Shipment cancellation
 - Polish postal code normalization (5 digits to XX-XXX format)
 - Parcel dimensions aggregated from cart item variants
+
+## Current limitations
+
+- The returns flow is currently optimized for InPost Returns ticket/code/label returns, typically locker or point-based returns depending on your Returns Portal configuration.
+- Courier return pickup is not implemented yet.
+- Supported return behavior depends on the services enabled for your InPost Returns Portal account.
+- The plugin does not perform refunds, quality-control approval, or warehouse receiving workflows automatically.
+- Webhooks are not implemented yet; shipments and returns use manual refresh plus scheduled synchronization.
 
 ## Prerequisites
 
@@ -383,6 +393,8 @@ Depending on the InPost Returns Portal settings for your account, the response c
 - `label_url` — label URL for labeled return shipments
 - `tracking_number` — return shipment tracking number
 - `return_expires_at` — return ticket expiration date
+
+At this stage, the self-service returns flow is intended for InPost Returns ticket/code/label returns. Courier pickup for returns is not implemented yet, even though `return_method` is typed to allow future `courier` support.
 
 If the return response contains a `label_url`, the storefront can download the label through:
 
