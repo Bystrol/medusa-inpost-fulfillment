@@ -26,6 +26,14 @@ export const INPOST_REMOTE_RETURN_TICKET_STATUSES = [
   "DELIVERED",
 ] as const
 
+export const INPOST_FINAL_RETURN_STATUSES = [
+  "failed",
+  "canceled",
+  "rejected",
+  "expired",
+  "delivered",
+] as const
+
 export const INPOST_RETURN_SESSION_CREATED_EVENT =
   "inpost.return_session_created"
 

@@ -13,6 +13,7 @@ import {
   InPostCreateReturnTicketResponse,
   CreateInPostReturnInput,
   CreateInPostReturnItemInput,
+  INPOST_FINAL_RETURN_STATUSES,
   INPOST_REMOTE_RETURN_TICKET_STATUSES,
   InPostLocalReturnItemRecord,
   InPostLocalReturnRecord,
@@ -109,8 +110,11 @@ type InPostReturnCrud = {
   ): Promise<InPostReturnItemRecord>;
 };
 
-const FINAL_STATUSES: ReadonlySet<string> = new Set(
+const FINAL_SHIPMENT_STATUSES: ReadonlySet<string> = new Set(
   INPOST_FINAL_SHIPMENT_STATUSES
+);
+const FINAL_RETURN_STATUSES: ReadonlySet<string> = new Set(
+  INPOST_FINAL_RETURN_STATUSES
 );
 const RETURN_REFRESH_PAGE_SIZE = 1000;
 const RETURN_REFRESH_LOOKBACK_MS = 2 * 24 * 60 * 60 * 1000;
@@ -312,7 +316,9 @@ class InPostModuleService extends MedusaService({
       }
     );
 
-    return shipments.filter((shipment) => !FINAL_STATUSES.has(shipment.status));
+    return shipments.filter(
+      (shipment) => !FINAL_SHIPMENT_STATUSES.has(shipment.status)
+    );
   }
 
   async listShipments(
@@ -486,6 +492,23 @@ class InPostModuleService extends MedusaService({
 
   async retrieveReturn(id: string): Promise<InPostReturnRecord> {
     return this.returnCrud().retrieveInpostReturn(id);
+  }
+
+  async listActiveReturns(limit = 50): Promise<InPostReturnRecord[]> {
+    const returns = await this.returnCrud().listInpostReturns(
+      {
+        return_id: { $ne: null },
+        status: { $nin: INPOST_FINAL_RETURN_STATUSES },
+      },
+      {
+        take: limit,
+        order: { updated_at: "ASC" },
+      }
+    );
+
+    return returns.filter(
+      (returnRecord) => !FINAL_RETURN_STATUSES.has(returnRecord.status)
+    );
   }
 
   async listReturns(

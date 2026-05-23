@@ -281,6 +281,8 @@ Label download accepts an optional `format` query parameter:
 
 Active shipments are synchronized every 15 minutes by the `sync-inpost-shipments` scheduled job.
 
+Active return tickets are synchronized every 30 minutes by the `sync-inpost-returns` scheduled job. The job processes local returns with a `return_id` and skips final statuses: `failed`, `canceled`, `rejected`, `expired`, and `delivered`.
+
 ### Admin UI
 
 The plugin adds an Admin UI extension under **InPost**. The shipments view uses the plugin Admin API and lets store staff:
