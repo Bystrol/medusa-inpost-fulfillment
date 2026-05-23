@@ -12,6 +12,11 @@ import {
 } from "../../lib/admin-shipments"
 import { InPostLabelFormat } from "../../lib/types"
 
+type RefreshInPostReturnDataResponse = Pick<
+  InPostAdminReturnResponse<string>,
+  "return_request"
+>
+
 async function parseError(response: Response): Promise<string> {
   const contentType = response.headers.get("content-type") || ""
 
@@ -98,6 +103,19 @@ export async function refreshInPostShipmentData(
   )
 
   return response.shipment
+}
+
+export async function refreshInPostReturnData(
+  id: string
+): Promise<InPostAdminReturn<string>> {
+  const response = await adminFetch<RefreshInPostReturnDataResponse>(
+    `/admin/inpost/returns/${id}/refresh`,
+    {
+      method: "POST",
+    }
+  )
+
+  return response.return_request
 }
 
 export async function cancelInPostShipment(

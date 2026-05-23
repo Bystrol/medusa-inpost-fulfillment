@@ -1,5 +1,6 @@
 import {
   ArrowDownTray,
+  ArrowPath,
   ArrowUpRightOnBox,
   Eye,
   MagnifyingGlass,
@@ -29,6 +30,7 @@ import {
   downloadInPostReturnLabel,
   getInPostReturn,
   listInPostReturns,
+  refreshInPostReturnData,
 } from "../../../lib/inpost-api"
 import {
   getReturnMethodLabel,
@@ -104,6 +106,14 @@ const InPostReturnsPage = () => {
     }
   }
 
+  const replaceReturn = (returnRequest: InPostAdminReturn<string>) => {
+    setReturns((currentReturns) =>
+      currentReturns.map((currentReturn) =>
+        currentReturn.id === returnRequest.id ? returnRequest : currentReturn
+      )
+    )
+  }
+
   const handleOpenDetails = async (returnRequest: InPostAdminReturn<string>) => {
     setIsDetailsLoading(true)
     setReturnDetails({
@@ -118,6 +128,32 @@ const InPostReturnsPage = () => {
       setReturnDetails(null)
     } finally {
       setIsDetailsLoading(false)
+    }
+  }
+
+  const handleRefreshReturn = async (id: string) => {
+    try {
+      const refreshed = await refreshInPostReturnData(id)
+      replaceReturn(refreshed)
+      setReturnDetails((currentDetails) =>
+        currentDetails?.return_request.id === refreshed.id
+          ? {
+              ...currentDetails,
+              return_request: refreshed,
+            }
+          : currentDetails
+      )
+      toast.success("InPost return data refreshed")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+
+      try {
+        const currentDetails = await getInPostReturn(id)
+        replaceReturn(currentDetails.return_request)
+        setReturnDetails(currentDetails)
+      } catch {
+        // Keep the original refresh error visible. A follow-up details fetch is best effort.
+      }
     }
   }
 
@@ -403,6 +439,7 @@ const InPostReturnsPage = () => {
                 isLoading={isDetailsLoading}
                 onCopy={handleCopy}
                 onDownloadLabel={handleDownloadLabel}
+                onRefreshData={handleRefreshReturn}
               />
             ) : null}
           </Drawer.Body>
@@ -417,6 +454,7 @@ type ReturnDetailsProps = {
   isLoading: boolean
   onCopy: (label: string, value?: string | null) => Promise<void>
   onDownloadLabel: (returnRequest: InPostAdminReturn<string>) => Promise<void>
+  onRefreshData: (id: string) => Promise<void>
 }
 
 function DetailItem({
@@ -472,6 +510,7 @@ function ReturnDetails({
   isLoading,
   onCopy,
   onDownloadLabel,
+  onRefreshData,
 }: ReturnDetailsProps) {
   const returnRequest = details.return_request
 
@@ -484,6 +523,14 @@ function ReturnDetails({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
+        <Button
+          size="small"
+          variant="secondary"
+          onClick={() => void onRefreshData(returnRequest.id)}
+        >
+          <ArrowPath />
+          Refresh data
+        </Button>
         <Button asChild size="small" variant="secondary">
           <Link to={`/orders/${returnRequest.order_id}`}>
             <ArrowUpRightOnBox />

@@ -2,11 +2,29 @@ export const INPOST_RETURN_STATUSES = [
   "requested",
   "submitted",
   "created",
+  "new",
+  "accepted",
+  "scanned",
+  "used",
+  "rejected",
+  "expired",
+  "delivered",
   "failed",
   "canceled",
 ] as const
 
 export const INPOST_RETURN_METHODS = ["locker", "point", "courier"] as const
+
+export const INPOST_REMOTE_RETURN_TICKET_STATUSES = [
+  "NEW",
+  "ACCEPTED",
+  "SCANNED",
+  "USED",
+  "CANCELED",
+  "REJECTED",
+  "EXPIRED",
+  "DELIVERED",
+] as const
 
 export const INPOST_RETURN_SESSION_CREATED_EVENT =
   "inpost.return_session_created"
@@ -18,6 +36,9 @@ export type InPostReturnStatus =
 export type InPostReturnMethod =
   | (typeof INPOST_RETURN_METHODS)[number]
   | (string & {})
+
+export type InPostRemoteReturnTicketStatus =
+  (typeof INPOST_REMOTE_RETURN_TICKET_STATUSES)[number]
 
 export type InPostLocalReturnRecord<TDate = Date> = {
   id: string
@@ -202,4 +223,43 @@ export type InPostCreateReturnTicketResponse = {
   expirationDate?: string
   code?: string
   labelUrl?: string
+}
+
+export type InPostReturnTicketListQuery = {
+  dateFrom: string
+  dateTo: string
+  status: InPostRemoteReturnTicketStatus
+  page?: number
+  size?: number
+  sort?: string
+}
+
+export type InPostReturnTicketRecord = {
+  code?: string
+  id: string
+  sender?: {
+    name?: string
+    email?: string
+    phoneNumber?: string
+  }
+  shipment?: {
+    size?: string
+    tracking?: {
+      number?: string
+      page?: string
+      url?: string
+    }
+  }
+  status: string
+  createdAt?: string
+  expiresAt?: string
+  sentAt?: string
+  deliveredAt?: string
+}
+
+export type InPostReturnTicketListResponse = {
+  returns: InPostReturnTicketRecord[]
+  count: number
+  page: number
+  perPage: number
 }

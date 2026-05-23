@@ -7,6 +7,13 @@ const STATUS_COLORS = {
   requested: "blue",
   submitted: "orange",
   created: "green",
+  new: "blue",
+  accepted: "green",
+  scanned: "orange",
+  used: "purple",
+  rejected: "red",
+  expired: "red",
+  delivered: "green",
   failed: "red",
   canceled: "red",
 } satisfies Partial<Record<InPostReturnStatus, StatusBadgeColor>>

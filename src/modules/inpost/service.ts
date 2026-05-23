@@ -13,8 +13,10 @@ import {
   InPostCreateReturnTicketResponse,
   CreateInPostReturnInput,
   CreateInPostReturnItemInput,
+  INPOST_REMOTE_RETURN_TICKET_STATUSES,
   InPostLocalReturnItemRecord,
   InPostLocalReturnRecord,
+  InPostReturnTicketRecord,
   UpdateInPostReturnInput,
   UpdateInPostReturnItemInput,
 } from "../../lib/returns";
@@ -110,6 +112,9 @@ type InPostReturnCrud = {
 const FINAL_STATUSES: ReadonlySet<string> = new Set(
   INPOST_FINAL_SHIPMENT_STATUSES
 );
+const RETURN_REFRESH_PAGE_SIZE = 1000;
+const RETURN_REFRESH_LOOKBACK_MS = 2 * 24 * 60 * 60 * 1000;
+const RETURN_REFRESH_LOOKAHEAD_MS = 2 * 24 * 60 * 60 * 1000;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -126,6 +131,37 @@ function toShipmentIdNumber(shipmentId: string): number {
   }
 
   return parsed;
+}
+
+function dateOrNull(value?: string | Date | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatReturnsApiDate(date: Date): string {
+  return date.toISOString().slice(0, 19);
+}
+
+function getReturnRefreshDateWindow(returnRecord: InPostReturnRecord): {
+  dateFrom: string;
+  dateTo: string;
+} {
+  const createdAt = dateOrNull(returnRecord.created_at) || new Date();
+  const from = new Date(createdAt.getTime() - RETURN_REFRESH_LOOKBACK_MS);
+  const to = new Date(Date.now() + RETURN_REFRESH_LOOKAHEAD_MS);
+
+  return {
+    dateFrom: formatReturnsApiDate(from),
+    dateTo: formatReturnsApiDate(to),
+  };
+}
+
+function normalizeReturnTicketStatus(status?: string): string {
+  return status?.trim().toLowerCase() || "created";
 }
 
 class InPostModuleService extends MedusaService({
@@ -348,6 +384,93 @@ class InPostModuleService extends MedusaService({
       filename: `inpost-return-label-${returnRecord.return_id}.pdf`,
       return_record: returnRecord,
     };
+  }
+
+  private async findRemoteReturnTicket(
+    returnRecord: InPostReturnRecord
+  ): Promise<InPostReturnTicketRecord | null> {
+    if (!returnRecord.return_id) {
+      return null;
+    }
+
+    const dateWindow = getReturnRefreshDateWindow(returnRecord);
+
+    for (const status of INPOST_REMOTE_RETURN_TICKET_STATUSES) {
+      let page = 0;
+
+      while (true) {
+        const response = await this.returnsClient.listReturnTickets({
+          ...dateWindow,
+          status,
+          page,
+          size: RETURN_REFRESH_PAGE_SIZE,
+          sort: "createdAt,desc",
+        });
+        const ticket = response.returns.find(
+          (remoteReturn) => remoteReturn.id === returnRecord.return_id
+        );
+
+        if (ticket) {
+          return ticket;
+        }
+
+        const perPage = response.perPage || RETURN_REFRESH_PAGE_SIZE;
+        const nextPage = page + 1;
+
+        if (!response.returns.length || nextPage * perPage >= response.count) {
+          break;
+        }
+
+        page = nextPage;
+      }
+    }
+
+    return null;
+  }
+
+  async refreshReturnData(id: string): Promise<InPostReturnRecord> {
+    const returnRecord = await this.retrieveReturn(id);
+
+    if (!returnRecord.return_id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "InPost return ticket has not been created yet"
+      );
+    }
+
+    try {
+      const remoteReturn = await this.findRemoteReturnTicket(returnRecord);
+
+      if (!remoteReturn) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `InPost return ticket ${returnRecord.return_id} was not found in the configured refresh window`
+        );
+      }
+
+      return this.updateReturn({
+        id,
+        status: normalizeReturnTicketStatus(remoteReturn.status),
+        tracking_number:
+          remoteReturn.shipment?.tracking?.number ||
+          returnRecord.tracking_number,
+        return_code: remoteReturn.code || returnRecord.return_code,
+        return_size: remoteReturn.shipment?.size || returnRecord.return_size,
+        return_expires_at:
+          dateOrNull(remoteReturn.expiresAt) || returnRecord.return_expires_at,
+        last_synced_at: new Date(),
+        last_error: null,
+        raw_response: remoteReturn as unknown as Record<string, unknown>,
+      });
+    } catch (error) {
+      await this.updateReturn({
+        id,
+        last_synced_at: new Date(),
+        last_error: errorMessage(error),
+      });
+
+      throw error;
+    }
   }
 
   async createReturn(input: CreateInPostReturnInput): Promise<InPostReturnRecord> {

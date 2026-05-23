@@ -254,6 +254,7 @@ The following admin routes are available:
 | `DELETE` | `/admin/inpost/shipments/:id`             | Cancel shipment in ShipX if allowed |
 | `GET`    | `/admin/inpost/returns`                   | List local InPost returns         |
 | `GET`    | `/admin/inpost/returns/:id`               | Retrieve one local return with items |
+| `POST`   | `/admin/inpost/returns/:id/refresh`       | Refresh return data from InPost Returns API |
 | `GET`    | `/admin/inpost/returns/:id/documents`     | Download return label PDF when available |
 
 List filters: `order_id`, `fulfillment_id`, `shipment_id`, `tracking_number`, `q`, `status`, `service_type`, `state`, `errors`, `date_from`, `date_to`, `limit`, and `offset`.
@@ -297,6 +298,10 @@ The plugin adds an Admin UI extension under **InPost**. The shipments view uses 
 The plugin also adds an order details widget showing InPost shipments recorded for the current order.
 
 The Admin UI groups shipments and returns under one **InPost** sidebar entry with internal tabs. The returns list uses server-side pagination and filters persisted in the URL, including status, return method, order ID, customer email, sync errors, and creation date range.
+
+Return details are available from the returns list. The drawer shows returned items, return code, tracking number, expiration date, last sync/error fields, and the raw InPost Returns API response. Store staff can refresh return data from InPost, copy the return code or tracking number, open the Medusa order, and download the return label when the ticket has a `label_url`.
+
+The InPost Returns REST API exposes return ticket lookup through the list endpoint, not a single-ticket status endpoint. The plugin refreshes one local return by querying `/v1/returns/tickets` across the known InPost return statuses in a date window around the local return creation date, then matching the remote ticket by `return_id`.
 
 ## How it works
 

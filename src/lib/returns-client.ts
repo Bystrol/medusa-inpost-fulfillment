@@ -2,6 +2,8 @@ import { MedusaError } from "@medusajs/framework/utils"
 import {
   InPostCreateReturnTicketRequest,
   InPostCreateReturnTicketResponse,
+  InPostReturnTicketListQuery,
+  InPostReturnTicketListResponse,
 } from "./returns"
 import { InPostPluginOptions } from "./types"
 
@@ -149,7 +151,8 @@ export class InPostReturnsClient {
     method: "GET" | "POST",
     path: string,
     body?: unknown,
-    responseType: "json" | "buffer" = "json"
+    responseType: "json" | "buffer" = "json",
+    headers: Record<string, string> = {}
   ): Promise<T> {
     const accessToken = await this.getAccessToken()
     const response = await fetch(`${this.apiBaseUrl}${path}`, {
@@ -157,6 +160,7 @@ export class InPostReturnsClient {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
+        ...headers,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
@@ -188,6 +192,28 @@ export class InPostReturnsClient {
       "POST",
       "/v1/returns/tickets",
       data
+    )
+  }
+
+  async listReturnTickets(
+    query: InPostReturnTicketListQuery
+  ): Promise<InPostReturnTicketListResponse> {
+    const searchParams = new URLSearchParams()
+
+    Object.entries(query).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        searchParams.set(key, String(value))
+      }
+    })
+
+    return this.request<InPostReturnTicketListResponse>(
+      "GET",
+      `/v1/returns/tickets?${searchParams.toString()}`,
+      undefined,
+      "json",
+      {
+        "Accept-Time-Zone": "Europe/Warsaw",
+      }
     )
   }
 
