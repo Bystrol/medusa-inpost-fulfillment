@@ -5,7 +5,6 @@ import {
   Container,
   Drawer,
   Heading,
-  Input,
   Select,
   Table,
   Text,
@@ -14,6 +13,8 @@ import {
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { DebouncedInput } from "../../../components/debounced-input"
+import { InPostTabs } from "../../../components/inpost-tabs"
 import { ShipmentActions } from "../../../components/shipment-actions"
 import { ShipmentStatusBadge } from "../../../components/shipment-status-badge"
 import { useUrlQueryState } from "../../../hooks/use-url-query-state"
@@ -117,16 +118,16 @@ const InPostShipmentsPage = () => {
           </Button>
         </div>
 
+        <InPostTabs />
+
         <div className="grid grid-cols-1 gap-3 px-6 py-4 md:grid-cols-[1fr_180px_180px_160px]">
           <div className="relative">
             <MagnifyingGlass className="text-ui-fg-muted absolute left-2 top-2.5" />
-            <Input
+            <DebouncedInput
               className="pl-8"
               placeholder="Search order, tracking, shipment, dispatch"
               value={filters.q}
-              onChange={(event) =>
-                setFilterAndResetPage("q", event.target.value)
-              }
+              onDebouncedChange={(value) => setFilterAndResetPage("q", value)}
             />
           </div>
           <Select
@@ -166,7 +167,12 @@ const InPostShipmentsPage = () => {
           </Select>
           <Select
             value={filters.errors}
-            onValueChange={(value) => setFilterAndResetPage("errors", value)}
+            onValueChange={(value) =>
+              setFilterAndResetPage(
+                "errors",
+                value as InPostShipmentListUrlQuery["errors"]
+              )
+            }
           >
             <Select.Trigger>
               <Select.Value placeholder="Errors" />
@@ -180,23 +186,28 @@ const InPostShipmentsPage = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-3 px-6 py-4 md:grid-cols-[180px_180px_180px_auto]">
-          <Input
+          <DebouncedInput
             type="date"
             value={filters.date_from}
-            onChange={(event) =>
-              setFilterAndResetPage("date_from", event.target.value)
+            onDebouncedChange={(value) =>
+              setFilterAndResetPage("date_from", value)
             }
           />
-          <Input
+          <DebouncedInput
             type="date"
             value={filters.date_to}
-            onChange={(event) =>
-              setFilterAndResetPage("date_to", event.target.value)
+            onDebouncedChange={(value) =>
+              setFilterAndResetPage("date_to", value)
             }
           />
           <Select
             value={filters.state}
-            onValueChange={(value) => setFilterAndResetPage("state", value)}
+            onValueChange={(value) =>
+              setFilterAndResetPage(
+                "state",
+                value as InPostShipmentListUrlQuery["state"]
+              )
+            }
           >
             <Select.Trigger>
               <Select.Value placeholder="State" />

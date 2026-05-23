@@ -1,4 +1,9 @@
 import {
+  InPostAdminReturn,
+  InPostReturnListParams,
+  ListInPostAdminReturnsResponse,
+} from "../../lib/admin-returns"
+import {
   InPostAdminShipment,
   InPostAdminShipmentResponse,
   InPostShipmentListParams,
@@ -56,6 +61,23 @@ export async function listInPostShipments(
   )
 }
 
+export async function listInPostReturns(
+  params: InPostReturnListParams = {}
+): Promise<ListInPostAdminReturnsResponse<string>> {
+  const searchParams = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.set(key, String(value))
+    }
+  })
+
+  const query = searchParams.toString()
+  return adminFetch<ListInPostAdminReturnsResponse<string>>(
+    `/admin/inpost/returns${query ? `?${query}` : ""}`
+  )
+}
+
 export async function refreshInPostShipmentData(
   id: string
 ): Promise<InPostAdminShipment> {
@@ -80,6 +102,33 @@ export async function cancelInPostShipment(
   )
 
   return response.shipment
+}
+
+export async function downloadInPostReturnLabel(
+  returnRequest: InPostAdminReturn
+): Promise<void> {
+  const response = await fetch(
+    `/admin/inpost/returns/${returnRequest.id}/documents`,
+    {
+      credentials: "include",
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(await parseError(response))
+  }
+
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `inpost-return-label-${
+    returnRequest.return_id || returnRequest.id
+  }.pdf`
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 export async function downloadInPostLabel(

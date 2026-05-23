@@ -296,6 +296,8 @@ The plugin adds an Admin UI extension under **InPost**. The shipments view uses 
 
 The plugin also adds an order details widget showing InPost shipments recorded for the current order.
 
+The Admin UI groups shipments and returns under one **InPost** sidebar entry with internal tabs. The returns list uses server-side pagination and filters persisted in the URL, including status, return method, order ID, customer email, sync errors, and creation date range.
+
 ## How it works
 
 ### Fulfillment flow

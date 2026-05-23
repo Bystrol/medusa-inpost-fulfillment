@@ -50,8 +50,79 @@ export type InPostReturnListParams = InPostReturnListQuery & {
   sort_order?: "ASC" | "DESC"
 }
 
+export type InPostReturnListUrlQuery = {
+  q: string
+  order_id: string
+  customer_email: string
+  status: InPostReturnStatus | "all"
+  return_method: InPostReturnMethod | "all"
+  errors: "all" | "errors" | "without-errors"
+  date_from: string
+  date_to: string
+  page: string
+}
+
+export const INPOST_RETURN_LIST_URL_QUERY_DEFAULTS: InPostReturnListUrlQuery = {
+  q: "",
+  order_id: "",
+  customer_email: "",
+  status: "all",
+  return_method: "all",
+  errors: "all",
+  date_from: "",
+  date_to: "",
+  page: "1",
+}
+
 function hasValue(value: string | undefined): value is string {
   return Boolean(value?.trim())
+}
+
+export function getInPostReturnListPageIndex(
+  query: Pick<InPostReturnListUrlQuery, "page">
+): number {
+  const parsed = Number.parseInt(query.page, 10)
+
+  if (!Number.isInteger(parsed) || parsed <= 1) {
+    return 0
+  }
+
+  return parsed - 1
+}
+
+function toErrorsFilter(
+  value: InPostReturnListUrlQuery["errors"]
+): InPostReturnListQuery["errors"] | undefined {
+  if (value === "errors") {
+    return "with"
+  }
+
+  if (value === "without-errors") {
+    return "without"
+  }
+
+  return undefined
+}
+
+export function buildInPostReturnListParamsFromUrlQuery(
+  query: InPostReturnListUrlQuery,
+  pageSize: number
+): InPostReturnListParams {
+  const pageIndex = getInPostReturnListPageIndex(query)
+
+  return {
+    limit: pageSize,
+    offset: pageIndex * pageSize,
+    q: query.q.trim() || undefined,
+    order_id: query.order_id.trim() || undefined,
+    customer_email: query.customer_email.trim() || undefined,
+    status: query.status === "all" ? undefined : query.status,
+    return_method:
+      query.return_method === "all" ? undefined : query.return_method,
+    errors: toErrorsFilter(query.errors),
+    date_from: query.date_from || undefined,
+    date_to: query.date_to || undefined,
+  }
 }
 
 function endOfDay(value: string): Date {

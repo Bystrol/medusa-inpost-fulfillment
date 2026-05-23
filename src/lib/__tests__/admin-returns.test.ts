@@ -2,7 +2,10 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import {
   addInPostReturnItemCounts,
+  buildInPostReturnListParamsFromUrlQuery,
   buildInPostReturnListFilters,
+  getInPostReturnListPageIndex,
+  INPOST_RETURN_LIST_URL_QUERY_DEFAULTS,
   toInPostAdminReturn,
 } from "../admin-returns"
 import { InPostLocalReturnRecord } from "../returns"
@@ -63,6 +66,42 @@ describe("InPost admin return helpers", () => {
 
     assert.equal(adminReturn.items_count, 2)
     assert.equal("token_hash" in adminReturn, false)
+  })
+
+  it("builds list params from URL query state", () => {
+    const params = buildInPostReturnListParamsFromUrlQuery(
+      {
+        ...INPOST_RETURN_LIST_URL_QUERY_DEFAULTS,
+        q: "  1234567890  ",
+        order_id: "order_123",
+        customer_email: "customer@example.com",
+        status: "created",
+        return_method: "locker",
+        errors: "without-errors",
+        date_from: "2026-05-01",
+        date_to: "2026-05-20",
+        page: "3",
+      },
+      20
+    )
+
+    assert.deepEqual(params, {
+      limit: 20,
+      offset: 40,
+      q: "1234567890",
+      order_id: "order_123",
+      customer_email: "customer@example.com",
+      status: "created",
+      return_method: "locker",
+      errors: "without",
+      date_from: "2026-05-01",
+      date_to: "2026-05-20",
+    })
+  })
+
+  it("normalizes invalid URL pages to the first page", () => {
+    assert.equal(getInPostReturnListPageIndex({ page: "0" }), 0)
+    assert.equal(getInPostReturnListPageIndex({ page: "abc" }), 0)
   })
 
   it("counts returned item quantities per return", () => {

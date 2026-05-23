@@ -37,7 +37,7 @@ function joinParts(parts: Array<string | null | undefined>): string | null {
 export function getShipmentStatusColor(
   status: InPostShipmentStatus
 ): StatusBadgeColor {
-  return STATUS_COLORS[status] || "grey"
+  return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || "grey"
 }
 
 export function getRemoteShipmentStatus(
