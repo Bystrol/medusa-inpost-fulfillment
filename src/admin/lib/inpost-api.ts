@@ -1,5 +1,6 @@
 import {
   InPostAdminReturn,
+  InPostAdminReturnResponse,
   InPostReturnListParams,
   ListInPostAdminReturnsResponse,
 } from "../../lib/admin-returns"
@@ -75,6 +76,14 @@ export async function listInPostReturns(
   const query = searchParams.toString()
   return adminFetch<ListInPostAdminReturnsResponse<string>>(
     `/admin/inpost/returns${query ? `?${query}` : ""}`
+  )
+}
+
+export async function getInPostReturn(
+  id: string
+): Promise<InPostAdminReturnResponse<string>> {
+  return adminFetch<InPostAdminReturnResponse<string>>(
+    `/admin/inpost/returns/${id}`
   )
 }
 

@@ -41,3 +41,9 @@ export function getReturnTicketDisplay(returnRequest: InPostAdminReturn): string
     "-"
   )
 }
+
+export function stringifyReturnRawResponse(
+  returnRequest: InPostAdminReturn
+): string {
+  return JSON.stringify(returnRequest.raw_response || {}, null, 2)
+}

@@ -1,12 +1,21 @@
-import { ArrowDownTray, MagnifyingGlass, XMark } from "@medusajs/icons"
+import {
+  ArrowDownTray,
+  ArrowUpRightOnBox,
+  Eye,
+  MagnifyingGlass,
+  SquareTwoStack,
+  XMark,
+} from "@medusajs/icons"
 import {
   Button,
   Container,
+  Drawer,
   Heading,
   IconButton,
   Select,
   Table,
   Text,
+  Textarea,
   Tooltip,
   toast,
 } from "@medusajs/ui"
@@ -18,17 +27,21 @@ import { ReturnStatusBadge } from "../../../components/return-status-badge"
 import { useUrlQueryState } from "../../../hooks/use-url-query-state"
 import {
   downloadInPostReturnLabel,
+  getInPostReturn,
   listInPostReturns,
 } from "../../../lib/inpost-api"
 import {
   getReturnMethodLabel,
   getReturnTicketDisplay,
+  stringifyReturnRawResponse,
 } from "../../../lib/return-format"
 import { formatDateTime } from "../../../lib/shipment-format"
 import {
   buildInPostReturnListParamsFromUrlQuery,
   getInPostReturnListPageIndex,
   INPOST_RETURN_LIST_URL_QUERY_DEFAULTS,
+  InPostAdminReturnItem,
+  InPostAdminReturnResponse,
   InPostAdminReturn,
   InPostReturnListUrlQuery,
 } from "../../../../lib/admin-returns"
@@ -50,6 +63,9 @@ const InPostReturnsPage = () => {
   const [returns, setReturns] = useState<InPostAdminReturn<string>[]>([])
   const [count, setCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [returnDetails, setReturnDetails] =
+    useState<InPostAdminReturnResponse<string> | null>(null)
+  const [isDetailsLoading, setIsDetailsLoading] = useState(false)
   const pageIndex = getInPostReturnListPageIndex(filters)
 
   const setFilterAndResetPage = <TKey extends keyof InPostReturnListUrlQuery>(
@@ -88,6 +104,32 @@ const InPostReturnsPage = () => {
     }
   }
 
+  const handleOpenDetails = async (returnRequest: InPostAdminReturn<string>) => {
+    setIsDetailsLoading(true)
+    setReturnDetails({
+      return_request: returnRequest,
+      items: [],
+    })
+
+    try {
+      setReturnDetails(await getInPostReturn(returnRequest.id))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+      setReturnDetails(null)
+    } finally {
+      setIsDetailsLoading(false)
+    }
+  }
+
+  const handleCopy = async (label: string, value?: string | null) => {
+    if (!value) {
+      return
+    }
+
+    await navigator.clipboard.writeText(value)
+    toast.success(`${label} copied`)
+  }
+
   useEffect(() => {
     void loadReturns()
   }, [
@@ -105,7 +147,8 @@ const InPostReturnsPage = () => {
   const pageCount = Math.ceil(count / PAGE_SIZE)
 
   return (
-    <Container className="divide-y p-0">
+    <>
+      <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
         <div>
           <Heading>InPost returns</Heading>
@@ -279,22 +322,37 @@ const InPostReturnsPage = () => {
                   {formatDateTime(returnRequest.last_synced_at)}
                 </Table.Cell>
                 <Table.Cell>
-                  <Tooltip
-                    content={
-                      returnRequest.label_url
-                        ? "Download return label"
-                        : "This return uses a return code instead of a label"
-                    }
-                  >
-                    <IconButton
-                      size="small"
-                      variant="transparent"
-                      disabled={!returnRequest.label_url}
-                      onClick={() => void handleDownloadLabel(returnRequest)}
+                  <div className="flex items-center justify-end gap-1">
+                    <Tooltip content="View return details">
+                      <IconButton
+                        size="small"
+                        variant="transparent"
+                        onClick={() => void handleOpenDetails(returnRequest)}
+                      >
+                        <Eye />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip
+                      content={
+                        returnRequest.label_url
+                          ? "Download return label"
+                          : "This return uses a return code instead of a label"
+                      }
                     >
-                      <ArrowDownTray />
-                    </IconButton>
-                  </Tooltip>
+                      <span className="inline-flex">
+                        <IconButton
+                          size="small"
+                          variant="transparent"
+                          disabled={!returnRequest.label_url}
+                          onClick={() =>
+                            void handleDownloadLabel(returnRequest)
+                          }
+                        >
+                          <ArrowDownTray />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </div>
                 </Table.Cell>
               </Table.Row>
             ))
@@ -322,6 +380,222 @@ const InPostReturnsPage = () => {
         }
       />
     </Container>
+
+      <Drawer
+        open={Boolean(returnDetails)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReturnDetails(null)
+          }
+        }}
+      >
+        <Drawer.Content className="flex max-h-screen flex-col">
+          <Drawer.Header>
+            <Drawer.Title>InPost return details</Drawer.Title>
+            <Drawer.Description>
+              {returnDetails?.return_request.order_id || ""}
+            </Drawer.Description>
+          </Drawer.Header>
+          <Drawer.Body className="min-h-0 overflow-y-auto">
+            {returnDetails ? (
+              <ReturnDetails
+                details={returnDetails}
+                isLoading={isDetailsLoading}
+                onCopy={handleCopy}
+                onDownloadLabel={handleDownloadLabel}
+              />
+            ) : null}
+          </Drawer.Body>
+        </Drawer.Content>
+      </Drawer>
+    </>
+  )
+}
+
+type ReturnDetailsProps = {
+  details: InPostAdminReturnResponse<string>
+  isLoading: boolean
+  onCopy: (label: string, value?: string | null) => Promise<void>
+  onDownloadLabel: (returnRequest: InPostAdminReturn<string>) => Promise<void>
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number | null | undefined
+}) {
+  return (
+    <div>
+      <Text className="text-ui-fg-subtle" size="xsmall">
+        {label}
+      </Text>
+      <Text size="small">{value || "-"}</Text>
+    </div>
+  )
+}
+
+function ReturnItemsTable({ items }: { items: InPostAdminReturnItem<string>[] }) {
+  return (
+    <Table>
+      <Table.Header>
+        <Table.Row>
+          <Table.HeaderCell>Line item</Table.HeaderCell>
+          <Table.HeaderCell>Quantity</Table.HeaderCell>
+          <Table.HeaderCell>Reason</Table.HeaderCell>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {items.length ? (
+          items.map((item) => (
+            <Table.Row key={item.id}>
+              <Table.Cell>{item.order_line_item_id}</Table.Cell>
+              <Table.Cell>{item.quantity}</Table.Cell>
+              <Table.Cell>{item.reason || "-"}</Table.Cell>
+            </Table.Row>
+          ))
+        ) : (
+          <Table.Row>
+            <td className="h-12 py-0 pl-6 pr-6" colSpan={3}>
+              <Text className="text-ui-fg-subtle">No return items found.</Text>
+            </td>
+          </Table.Row>
+        )}
+      </Table.Body>
+    </Table>
+  )
+}
+
+function ReturnDetails({
+  details,
+  isLoading,
+  onCopy,
+  onDownloadLabel,
+}: ReturnDetailsProps) {
+  const returnRequest = details.return_request
+
+  return (
+    <div className="flex flex-col gap-y-6">
+      {isLoading ? (
+        <Text className="text-ui-fg-subtle" size="small">
+          Loading return details...
+        </Text>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="small" variant="secondary">
+          <Link to={`/orders/${returnRequest.order_id}`}>
+            <ArrowUpRightOnBox />
+            Open order
+          </Link>
+        </Button>
+        <Tooltip
+          content={
+            returnRequest.return_code
+              ? "Copy return code"
+              : "Return code is not available yet"
+          }
+        >
+          <span className="inline-flex">
+            <Button
+              size="small"
+              variant="secondary"
+              disabled={!returnRequest.return_code}
+              onClick={() =>
+                void onCopy("Return code", returnRequest.return_code)
+              }
+            >
+              <SquareTwoStack />
+              Copy return code
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip
+          content={
+            returnRequest.tracking_number
+              ? "Copy tracking number"
+              : "Tracking number is not available yet"
+          }
+        >
+          <span className="inline-flex">
+            <Button
+              size="small"
+              variant="secondary"
+              disabled={!returnRequest.tracking_number}
+              onClick={() =>
+                void onCopy("Tracking number", returnRequest.tracking_number)
+              }
+            >
+              <SquareTwoStack />
+              Copy tracking
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip
+          content={
+            returnRequest.label_url
+              ? "Download return label"
+              : "This return uses a return code instead of a label"
+          }
+        >
+          <span className="inline-flex">
+            <Button
+              size="small"
+              variant="secondary"
+              disabled={!returnRequest.label_url}
+              onClick={() => void onDownloadLabel(returnRequest)}
+            >
+              <ArrowDownTray />
+              Download label
+            </Button>
+          </span>
+        </Tooltip>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <DetailItem label="Status" value={returnRequest.status} />
+        <DetailItem
+          label="Method"
+          value={getReturnMethodLabel(returnRequest.return_method)}
+        />
+        <DetailItem label="Customer email" value={returnRequest.customer_email} />
+        <DetailItem label="Order ID" value={returnRequest.order_id} />
+        <DetailItem label="Return ID" value={returnRequest.return_id} />
+        <DetailItem label="Return code" value={returnRequest.return_code} />
+        <DetailItem label="Tracking" value={returnRequest.tracking_number} />
+        <DetailItem label="Size" value={returnRequest.return_size} />
+        <DetailItem
+          label="Created"
+          value={formatDateTime(returnRequest.created_at)}
+        />
+        <DetailItem
+          label="Expires"
+          value={formatDateTime(returnRequest.return_expires_at)}
+        />
+        <DetailItem
+          label="Last sync"
+          value={formatDateTime(returnRequest.last_synced_at)}
+        />
+        <DetailItem label="Last error" value={returnRequest.last_error} />
+      </div>
+
+      <div>
+        <Heading level="h3">Items</Heading>
+        <div className="mt-3">
+          <ReturnItemsTable items={details.items} />
+        </div>
+      </div>
+
+      <div>
+        <Heading level="h3">Raw response</Heading>
+        <Textarea
+          className="mt-3 h-64 max-h-64 resize-none overflow-auto font-mono"
+          readOnly
+          value={stringifyReturnRawResponse(returnRequest)}
+        />
+      </div>
+    </div>
   )
 }
 
