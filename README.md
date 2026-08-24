@@ -2,6 +2,8 @@
 
 InPost fulfillment provider plugin for [MedusaJS v2](https://medusajs.com/). Integrates with the [InPost ShipX API](https://dokumentacja-inpost.atlassian.net/wiki/spaces/PL/pages/622754/API+ShipX) to support Paczkomat locker and courier delivery.
 
+Built and maintained by [Digity Studio](https://digity.studio/) — need a Medusa store built, customized or integrated with Polish carriers and payments? [Let's talk](https://digity.studio/).
+
 > ## 🧪 Beta testers wanted
 >
 > This plugin has been tested thoroughly against the **InPost sandbox**, but not yet end-to-end against a **production** InPost account. If you have production InPost ShipX credentials and are using Medusa v2, I'd love your help validating real locker and courier shipments.
@@ -479,6 +481,12 @@ export const config: SubscriberConfig = {
 | `sender.email`          | `string`                         | Yes         | —         | Sender email                                    |
 | `sender.phone`          | `string`                         | Yes         | —         | Sender phone number                             |
 | `sender.address`        | `object`                         | Yes         | —         | Sender address                                  |
+
+## Work with me
+
+This plugin is built and maintained by [Digity Studio](https://digity.studio/).
+
+I help e-commerce teams ship on Medusa v2 — custom modules and plugins, carrier and payment integrations, storefronts, and migrations from other platforms. If you need this plugin extended, a similar integration for another carrier, or a hand with your Medusa build, get in touch at [digity.studio](https://digity.studio/).
 
 ## License
 
