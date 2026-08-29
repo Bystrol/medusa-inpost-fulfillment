@@ -2,7 +2,7 @@
 
 InPost fulfillment provider plugin for [MedusaJS v2](https://medusajs.com/). Integrates with the [InPost ShipX API](https://dokumentacja-inpost.atlassian.net/wiki/spaces/PL/pages/622754/API+ShipX) to support Paczkomat locker and courier delivery.
 
-Built and maintained by [Digity Studio](https://digity.studio/) — need a Medusa store built, customized or integrated with Polish carriers and payments? [Let's talk](https://digity.studio/).
+Built and maintained by [Digity](https://digity.studio/) — need a Medusa store built, customized or integrated with Polish carriers and payments? [Let's talk](https://digity.studio/).
 
 > ## 🧪 Beta testers wanted
 >
@@ -209,19 +209,19 @@ await sdk.store.cart.addShippingMethod(cartId, {
 
 InPost ShipX expects the street and building number as separate address fields. The storefront checkout should collect and save them separately:
 
-| Storefront field        | Medusa shipping address field        | Required |
-| ----------------------- | ------------------------------------ | -------- |
-| First name              | `shipping_address.first_name`        | Yes      |
-| Last name               | `shipping_address.last_name`         | Yes      |
-| Street                  | `shipping_address.address_1`         | Yes      |
-| Building number         | `shipping_address.address_2`         | Yes      |
-| Postal code             | `shipping_address.postal_code`       | Yes      |
-| City                    | `shipping_address.city`              | Yes      |
-| Country                 | `shipping_address.country_code`      | Yes      |
-| Phone                   | `shipping_address.phone`             | Yes      |
-| Company                 | `shipping_address.company`           | No       |
-| State / province        | `shipping_address.province`          | No       |
-| Apartment / flat number | `shipping_address.metadata.flat_number` | No    |
+| Storefront field        | Medusa shipping address field           | Required |
+| ----------------------- | --------------------------------------- | -------- |
+| First name              | `shipping_address.first_name`           | Yes      |
+| Last name               | `shipping_address.last_name`            | Yes      |
+| Street                  | `shipping_address.address_1`            | Yes      |
+| Building number         | `shipping_address.address_2`            | Yes      |
+| Postal code             | `shipping_address.postal_code`          | Yes      |
+| City                    | `shipping_address.city`                 | Yes      |
+| Country                 | `shipping_address.country_code`         | Yes      |
+| Phone                   | `shipping_address.phone`                | Yes      |
+| Company                 | `shipping_address.company`              | No       |
+| State / province        | `shipping_address.province`             | No       |
+| Apartment / flat number | `shipping_address.metadata.flat_number` | No       |
 
 Do not put the full street address with building number into `address_1` (for example `Marszalkowska 10`). Use `address_1` for the street name only and `address_2` for the building number.
 
@@ -257,17 +257,17 @@ Stored fields include:
 
 The following admin routes are available:
 
-| Method   | Path                                      | Description                       |
-| -------- | ----------------------------------------- | --------------------------------- |
-| `GET`    | `/admin/inpost/shipments`                 | List local InPost shipments       |
-| `GET`    | `/admin/inpost/shipments/:id`             | Retrieve one local shipment       |
-| `POST`   | `/admin/inpost/shipments/:id/refresh`     | Refresh shipment data from ShipX |
-| `GET`    | `/admin/inpost/shipments/:id/label`       | Download shipment label           |
-| `DELETE` | `/admin/inpost/shipments/:id`             | Cancel shipment in ShipX if allowed |
-| `GET`    | `/admin/inpost/returns`                   | List local InPost returns         |
-| `GET`    | `/admin/inpost/returns/:id`               | Retrieve one local return with items |
-| `POST`   | `/admin/inpost/returns/:id/refresh`       | Refresh return data from InPost Returns API |
-| `GET`    | `/admin/inpost/returns/:id/documents`     | Download return label PDF when available |
+| Method   | Path                                  | Description                                 |
+| -------- | ------------------------------------- | ------------------------------------------- |
+| `GET`    | `/admin/inpost/shipments`             | List local InPost shipments                 |
+| `GET`    | `/admin/inpost/shipments/:id`         | Retrieve one local shipment                 |
+| `POST`   | `/admin/inpost/shipments/:id/refresh` | Refresh shipment data from ShipX            |
+| `GET`    | `/admin/inpost/shipments/:id/label`   | Download shipment label                     |
+| `DELETE` | `/admin/inpost/shipments/:id`         | Cancel shipment in ShipX if allowed         |
+| `GET`    | `/admin/inpost/returns`               | List local InPost returns                   |
+| `GET`    | `/admin/inpost/returns/:id`           | Retrieve one local return with items        |
+| `POST`   | `/admin/inpost/returns/:id/refresh`   | Refresh return data from InPost Returns API |
+| `GET`    | `/admin/inpost/returns/:id/documents` | Download return label PDF when available    |
 
 List filters: `order_id`, `fulfillment_id`, `shipment_id`, `tracking_number`, `q`, `status`, `service_type`, `state`, `errors`, `date_from`, `date_to`, `limit`, and `offset`.
 
@@ -275,14 +275,14 @@ Return list filters: `order_id`, `customer_email`, `return_id`, `tracking_number
 
 Supported list filter values:
 
-| Query param    | Description                                      |
-| -------------- | ------------------------------------------------ |
+| Query param    | Description                                                                            |
+| -------------- | -------------------------------------------------------------------------------------- |
 | `q`            | Searches order ID, fulfillment ID, shipment ID, tracking number, and dispatch order ID |
-| `service_type` | `inpost_locker_standard` or `inpost_courier_standard` |
-| `state`        | `active` or `canceled`                           |
-| `errors`       | `with` or `without`                              |
-| `date_from`    | Shipment creation date lower bound, `YYYY-MM-DD` |
-| `date_to`      | Shipment creation date upper bound, `YYYY-MM-DD` |
+| `service_type` | `inpost_locker_standard` or `inpost_courier_standard`                                  |
+| `state`        | `active` or `canceled`                                                                 |
+| `errors`       | `with` or `without`                                                                    |
+| `date_from`    | Shipment creation date lower bound, `YYYY-MM-DD`                                       |
+| `date_to`      | Shipment creation date upper bound, `YYYY-MM-DD`                                       |
 
 Label download accepts an optional `format` query parameter:
 
@@ -353,12 +353,12 @@ Medusa's default fulfillment-provider return flow does not provide enough data t
 
 The plugin includes the first part of a self-service return flow:
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| `POST` | `/store/inpost/returns/lookup` | Looks up an order by `order_id` and `email`, then prepares a hashed return-session token if the order matches |
-| `GET` | `/store/inpost/returns/session?token=...` | Validates a return-session token and returns safe order/item data plus created return-ticket data for the return UI |
-| `POST` | `/store/inpost/returns` | Submits a return request from an active return-session token and creates an InPost return ticket if Returns API credentials are configured |
-| `GET` | `/store/inpost/returns/:id/documents?token=...` | Downloads the return label PDF for an active return session, when the InPost return ticket has a label |
+| Method | Path                                            | Description                                                                                                                                |
+| ------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST` | `/store/inpost/returns/lookup`                  | Looks up an order by `order_id` and `email`, then prepares a hashed return-session token if the order matches                              |
+| `GET`  | `/store/inpost/returns/session?token=...`       | Validates a return-session token and returns safe order/item data plus created return-ticket data for the return UI                        |
+| `POST` | `/store/inpost/returns`                         | Submits a return request from an active return-session token and creates an InPost return ticket if Returns API credentials are configured |
+| `GET`  | `/store/inpost/returns/:id/documents?token=...` | Downloads the return label PDF for an active return session, when the InPost return ticket has a label                                     |
 
 Lookup request body:
 
@@ -417,74 +417,74 @@ Event payload:
 
 ```ts
 type InPostReturnSessionCreatedEvent = {
-  email: string
-  order_id: string
-  inpost_return_id: string
-  return_method: "locker" | "point" | "courier" | (string & {})
-  magic_link: string
-  token_expires_at: Date | string | null
-}
+  email: string;
+  order_id: string;
+  inpost_return_id: string;
+  return_method: "locker" | "point" | "courier" | (string & {});
+  magic_link: string;
+  token_expires_at: Date | string | null;
+};
 ```
 
 The plugin does not send emails directly. Add a subscriber in your Medusa app and call your email or notification provider from there:
 
 ```ts
-import { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+import { SubscriberArgs, SubscriberConfig } from "@medusajs/framework";
 
 type InPostReturnSessionCreatedEvent = {
-  email: string
-  order_id: string
-  inpost_return_id: string
-  return_method: string
-  magic_link: string
-  token_expires_at: string | Date | null
-}
+  email: string;
+  order_id: string;
+  inpost_return_id: string;
+  return_method: string;
+  magic_link: string;
+  token_expires_at: string | Date | null;
+};
 
 export default async function sendInPostReturnMagicLink({
   event: { data },
   container,
 }: SubscriberArgs<InPostReturnSessionCreatedEvent>) {
-  const logger = container.resolve("logger")
+  const logger = container.resolve("logger");
 
   logger.info(
     `Send InPost return magic link for order ${data.order_id} to ${data.email}: ${data.magic_link}`
-  )
+  );
 
   // Call your email provider here.
 }
 
 export const config: SubscriberConfig = {
   event: "inpost.return_session_created",
-}
+};
 ```
 
 ## Options reference
 
-| Option                  | Type                             | Required    | Default   | Description                                     |
-| ----------------------- | -------------------------------- | ----------- | --------- | ----------------------------------------------- |
-| `apiToken`              | `string`                         | Yes         | —         | InPost ShipX API token                          |
-| `organizationId`        | `string`                         | Yes         | —         | InPost organization ID                          |
-| `sandbox`               | `boolean`                        | No          | `false`   | Use sandbox API environment                     |
-| `defaultParcelTemplate` | `"small" \| "medium" \| "large"` | No          | `"small"` | Default parcel template for locker shipments    |
-| `defaultLabelFormat`    | `"pdf" \| "zpl"`                 | No          | `"pdf"`   | Default label format for shipment documents     |
-| `returnTokenTtlMinutes` | `number`                         | No          | `60`      | Store API return-session token lifetime         |
-| `returns.clientId`      | `string`                         | For returns | —         | InPost Returns REST API OAuth client ID         |
-| `returns.clientSecret`  | `string`                         | For returns | —         | InPost Returns REST API OAuth client secret     |
-| `returns.defaultParcelSize` | `"A" \| "B" \| "C"`          | No          | account default | Default parcel size for return tickets     |
-| `returns.magicLinkBaseUrl` | `string`                      | No          | —         | Absolute storefront URL used to build return-session magic links |
-| `returns.receiver`      | `object`                         | No          | account default | Receiver override for return tickets            |
-| `returns.description`   | `string`                         | No          | —         | Description shown to the return sender          |
-| `sender`                | `object`                         | For courier | —         | Sender details (required for courier shipments) |
-| `sender.company_name`   | `string`                         | For courier | —         | Sender company name                             |
-| `sender.first_name`     | `string`                         | For courier | —         | Sender first name                               |
-| `sender.last_name`      | `string`                         | For courier | —         | Sender last name                                |
-| `sender.email`          | `string`                         | Yes         | —         | Sender email                                    |
-| `sender.phone`          | `string`                         | Yes         | —         | Sender phone number                             |
-| `sender.address`        | `object`                         | Yes         | —         | Sender address                                  |
+| Option                      | Type                             | Required    | Default         | Description                                                      |
+| --------------------------- | -------------------------------- | ----------- | --------------- | ---------------------------------------------------------------- |
+| `apiToken`                  | `string`                         | Yes         | —               | InPost ShipX API token                                           |
+| `organizationId`            | `string`                         | Yes         | —               | InPost organization ID                                           |
+| `sandbox`                   | `boolean`                        | No          | `false`         | Use sandbox API environment                                      |
+| `defaultParcelTemplate`     | `"small" \| "medium" \| "large"` | No          | `"small"`       | Default parcel template for locker shipments                     |
+| `defaultLabelFormat`        | `"pdf" \| "zpl"`                 | No          | `"pdf"`         | Default label format for shipment documents                      |
+| `returnTokenTtlMinutes`     | `number`                         | No          | `60`            | Store API return-session token lifetime                          |
+| `returns.clientId`          | `string`                         | For returns | —               | InPost Returns REST API OAuth client ID                          |
+| `returns.clientSecret`      | `string`                         | For returns | —               | InPost Returns REST API OAuth client secret                      |
+| `returns.defaultParcelSize` | `"A" \| "B" \| "C"`              | No          | account default | Default parcel size for return tickets                           |
+| `returns.magicLinkBaseUrl`  | `string`                         | No          | —               | Absolute storefront URL used to build return-session magic links |
+| `returns.receiver`          | `object`                         | No          | account default | Receiver override for return tickets                             |
+| `returns.description`       | `string`                         | No          | —               | Description shown to the return sender                           |
+| `sender`                    | `object`                         | For courier | —               | Sender details (required for courier shipments)                  |
+| `sender.company_name`       | `string`                         | For courier | —               | Sender company name                                              |
+| `sender.first_name`         | `string`                         | For courier | —               | Sender first name                                                |
+| `sender.last_name`          | `string`                         | For courier | —               | Sender last name                                                 |
+| `sender.email`              | `string`                         | Yes         | —               | Sender email                                                     |
+| `sender.phone`              | `string`                         | Yes         | —               | Sender phone number                                              |
+| `sender.address`            | `object`                         | Yes         | —               | Sender address                                                   |
 
 ## Work with me
 
-This plugin is built and maintained by [Digity Studio](https://digity.studio/).
+This plugin is built and maintained by [Digity](https://digity.studio/).
 
 I help e-commerce teams ship on Medusa v2 — custom modules and plugins, carrier and payment integrations, storefronts, and migrations from other platforms. If you need this plugin extended, a similar integration for another carrier, or a hand with your Medusa build, get in touch at [digity.studio](https://digity.studio/).
 
