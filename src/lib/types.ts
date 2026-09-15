@@ -7,6 +7,19 @@ export interface InPostPluginOptions {
   returnTokenTtlMinutes?: number
   returns?: InPostReturnsOptions
   sender?: InPostPerson
+  /**
+   * Time limit in milliseconds for each request to InPost's APIs (ShipX and
+   * Returns), covering connecting, headers and the body. Not set by default,
+   * which leaves the runtime's own limits in place.
+   */
+  requestTimeoutMs?: number
+  /**
+   * How many times `createFulfillment` re-reads a new shipment while waiting
+   * for its offers. Default: 15. `0` skips the wait.
+   */
+  offerPollAttempts?: number
+  /** Pause before each of those reads, in milliseconds. Default: 2000. */
+  offerPollIntervalMs?: number
 }
 
 export type InPostLabelFormat = "pdf" | "zpl"

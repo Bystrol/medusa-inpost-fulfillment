@@ -21,6 +21,7 @@ import {
   InPostFulfillmentData,
   resolveLabelFormat,
 } from "../../lib/fulfillment";
+import { InPostOfferPolling, resolveOfferPolling } from "../../lib/timeouts";
 import {
   InPostPluginOptions,
   InPostService,
@@ -51,6 +52,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
   private client: InPostShipXClient;
   private logger: Logger;
   private options: InPostPluginOptions;
+  private offerPolling: InPostOfferPolling;
 
   constructor(dependencies: InjectedDependencies, options: InPostPluginOptions) {
     super();
@@ -71,6 +73,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
     this.logger = dependencies.logger;
     this.options = options;
     this.client = new InPostShipXClient(options);
+    this.offerPolling = resolveOfferPolling(options);
   }
 
   async getFulfillmentOptions() {
@@ -219,7 +222,7 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
 
       // Poll until shipment is confirmed or offers are ready
       let current = shipment;
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < this.offerPolling.attempts; i++) {
         if (current.status === "confirmed") break;
 
         const hasOffers = current.offers?.some(
@@ -227,7 +230,9 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
         );
         if (hasOffers || current.status === "offers_prepared") break;
 
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.offerPolling.intervalMs)
+        );
         current = await this.client.getShipment(shipment.id);
       }
 

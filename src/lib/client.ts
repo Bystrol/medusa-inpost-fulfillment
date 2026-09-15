@@ -7,6 +7,7 @@ import {
   InPostShipmentRequest,
   InPostShipmentResponse,
 } from "./types";
+import { fetchWithTimeout, resolveRequestTimeoutMs } from "./timeouts";
 
 const SANDBOX_BASE_URL = "https://sandbox-api-shipx-pl.easypack24.net";
 const PRODUCTION_BASE_URL = "https://api-shipx-pl.easypack24.net";
@@ -15,11 +16,13 @@ export class InPostShipXClient {
   private apiToken: string;
   private baseUrl: string;
   private organizationId: string;
+  private requestTimeoutMs?: number;
 
   constructor(options: InPostPluginOptions) {
     this.baseUrl = options.sandbox ? SANDBOX_BASE_URL : PRODUCTION_BASE_URL;
     this.organizationId = options.organizationId;
     this.apiToken = options.apiToken;
+    this.requestTimeoutMs = resolveRequestTimeoutMs(options);
   }
 
   private async request<T>(
@@ -33,11 +36,16 @@ export class InPostShipXClient {
       "Content-Type": "application/json",
     };
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}${path}`,
+      {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      },
+      this.requestTimeoutMs,
+      `${method} ${path}`
+    );
 
     if (!response.ok) {
       const errorText = await response.text();

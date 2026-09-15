@@ -5,6 +5,7 @@ import {
   InPostReturnTicketListQuery,
   InPostReturnTicketListResponse,
 } from "./returns"
+import { fetchWithTimeout, resolveRequestTimeoutMs } from "./timeouts"
 import { InPostPluginOptions } from "./types"
 
 const SANDBOX_API_BASE_URL = "https://sandbox-api.inpost.pl"
@@ -76,6 +77,7 @@ export class InPostReturnsClient {
   private clientId?: string
   private clientSecret?: string
   private cachedToken?: CachedToken
+  private requestTimeoutMs?: number
 
   constructor(options: InPostPluginOptions) {
     this.apiBaseUrl = options.sandbox
@@ -86,6 +88,7 @@ export class InPostReturnsClient {
       : PRODUCTION_AUTH_BASE_URL
     this.clientId = options.returns?.clientId
     this.clientSecret = options.returns?.clientSecret
+    this.requestTimeoutMs = resolveRequestTimeoutMs(options)
   }
 
   isConfigured(): boolean {
@@ -121,7 +124,7 @@ export class InPostReturnsClient {
       client_secret: credentials.clientSecret,
       grant_type: "client_credentials",
     })
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${this.authBaseUrl}/auth/realms/external/protocol/openid-connect/token`,
       {
         method: "POST",
@@ -129,7 +132,9 @@ export class InPostReturnsClient {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body,
-      }
+      },
+      this.requestTimeoutMs,
+      "POST /auth/realms/external/protocol/openid-connect/token"
     )
     const text = await response.text()
 
@@ -155,15 +160,20 @@ export class InPostReturnsClient {
     headers: Record<string, string> = {}
   ): Promise<T> {
     const accessToken = await this.getAccessToken()
-    const response = await fetch(`${this.apiBaseUrl}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-        ...headers,
+    const response = await fetchWithTimeout(
+      `${this.apiBaseUrl}${path}`,
+      {
+        method,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    })
+      this.requestTimeoutMs,
+      `${method} ${path}`
+    )
 
     if (!response.ok) {
       throwInPostReturnsError(

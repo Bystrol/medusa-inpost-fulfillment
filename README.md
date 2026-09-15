@@ -91,6 +91,18 @@ const inpostOptions = {
   // Optional — return session token lifetime in minutes (default: 60)
   returnTokenTtlMinutes: 60,
 
+  // Optional — time limit in ms for each request to InPost's APIs (ShipX and
+  // Returns), covering connect, headers and body. Not set by default, which
+  // leaves Node's fetch limits in place (300 s for headers and for the body).
+  // A timed-out request fails with a MedusaError naming the request.
+  requestTimeoutMs: 15000,
+
+  // Optional — how createFulfillment waits for a new shipment's offers:
+  // number of re-reads (default: 15, 0 skips the wait) and the pause before
+  // each one in ms (default: 2000)
+  offerPollAttempts: 15,
+  offerPollIntervalMs: 2000,
+
   // Optional — enables self-service return tickets through InPost Returns API.
   // Uses the same sandbox flag as ShipX.
   returns: {
