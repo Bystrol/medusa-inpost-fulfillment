@@ -9,8 +9,8 @@ export interface InPostPluginOptions {
   sender?: InPostPerson
   /**
    * Time limit in milliseconds for each request to InPost's APIs (ShipX and
-   * Returns), covering connecting, headers and the body. Not set by default,
-   * which leaves the runtime's own limits in place.
+   * Returns), covering connecting, headers and the body. Default: 30000.
+   * `0` disables it, which leaves the runtime's own limits in place.
    */
   requestTimeoutMs?: number
   /**

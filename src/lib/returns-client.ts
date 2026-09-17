@@ -5,7 +5,11 @@ import {
   InPostReturnTicketListQuery,
   InPostReturnTicketListResponse,
 } from "./returns"
-import { fetchWithTimeout, resolveRequestTimeoutMs } from "./timeouts"
+import {
+  decodeBody,
+  fetchWithTimeout,
+  resolveRequestTimeoutMs,
+} from "./timeouts"
 import { InPostPluginOptions } from "./types"
 
 const SANDBOX_API_BASE_URL = "https://sandbox-api.inpost.pl"
@@ -77,7 +81,7 @@ export class InPostReturnsClient {
   private clientId?: string
   private clientSecret?: string
   private cachedToken?: CachedToken
-  private requestTimeoutMs?: number
+  private requestTimeoutMs: number
 
   constructor(options: InPostPluginOptions) {
     this.apiBaseUrl = options.sandbox
@@ -124,7 +128,7 @@ export class InPostReturnsClient {
       client_secret: credentials.clientSecret,
       grant_type: "client_credentials",
     })
-    const response = await fetchWithTimeout(
+    const { response, body: responseBody } = await fetchWithTimeout(
       `${this.authBaseUrl}/auth/realms/external/protocol/openid-connect/token`,
       {
         method: "POST",
@@ -136,7 +140,7 @@ export class InPostReturnsClient {
       this.requestTimeoutMs,
       "POST /auth/realms/external/protocol/openid-connect/token"
     )
-    const text = await response.text()
+    const text = decodeBody(responseBody)
 
     if (!response.ok) {
       throwInPostReturnsError("InPost Returns API auth error", response, text)
@@ -160,7 +164,7 @@ export class InPostReturnsClient {
     headers: Record<string, string> = {}
   ): Promise<T> {
     const accessToken = await this.getAccessToken()
-    const response = await fetchWithTimeout(
+    const { response, body: responseBody } = await fetchWithTimeout(
       `${this.apiBaseUrl}${path}`,
       {
         method,
@@ -179,20 +183,19 @@ export class InPostReturnsClient {
       throwInPostReturnsError(
         "InPost Returns API error",
         response,
-        await response.text()
+        decodeBody(responseBody)
       )
     }
 
     if (responseType === "buffer") {
-      const arrayBuffer = await response.arrayBuffer()
-      return Buffer.from(arrayBuffer) as unknown as T
+      return responseBody as unknown as T
     }
 
     if (response.status === 204) {
       return undefined as unknown as T
     }
 
-    return response.json() as Promise<T>
+    return JSON.parse(decodeBody(responseBody)) as T
   }
 
   async createReturnTicket(

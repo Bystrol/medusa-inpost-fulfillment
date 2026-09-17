@@ -24,23 +24,22 @@ function assertInteger(
   return value
 }
 
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
+
 /**
- * Per-request time limit for calls to InPost's APIs, in milliseconds, or
- * `undefined` when none is configured.
- *
- * Off by default, so upgrading changes nothing for existing installations.
- * Without it a request that InPost accepts but never answers waits for the
- * runtime's own limits (Node's fetch: 300 s for headers and again for the
- * body), and `createFulfillment` makes several such requests in a row.
+ * Per-request time limit for calls to InPost's APIs, in milliseconds.
+ * `0` means no limit (the axios / Node convention), which leaves the
+ * runtime's own limits in place (Node's fetch: 300 s for headers and again
+ * for the body) - `createFulfillment` makes several such requests in a row.
  */
 export function resolveRequestTimeoutMs(
   options: Pick<InPostPluginOptions, "requestTimeoutMs">
-): number | undefined {
+): number {
   if (options.requestTimeoutMs === undefined) {
-    return undefined
+    return DEFAULT_REQUEST_TIMEOUT_MS
   }
 
-  return assertInteger("requestTimeoutMs", options.requestTimeoutMs, { min: 1 })
+  return assertInteger("requestTimeoutMs", options.requestTimeoutMs, { min: 0 })
 }
 
 /**
@@ -65,14 +64,25 @@ export function resolveOfferPolling(
   }
 }
 
+export type InPostFetchResult = {
+  /** Status and headers. Its body has already been read into `body`. */
+  response: Response
+  body: Buffer
+}
+
 /**
- * `fetch` with an optional deadline covering the whole exchange - connecting,
- * headers and reading the body - since the signal stays attached to the
- * response. A timeout is rethrown as a MedusaError naming the request, so it
- * reads as an InPost problem rather than as a bare `TimeoutError`.
+ * `fetch` plus reading the whole response body, under one optional deadline
+ * covering the exchange - connecting, headers and the body. A timeout at any
+ * of those stages is rethrown as a MedusaError naming the request, so it reads
+ * as an InPost problem rather than as a bare `TimeoutError`.
  *
- * `label` identifies the request in that message (e.g. "GET /v1/shipments/1");
- * it must not contain credentials.
+ * The body is read here rather than by the caller because the deadline's
+ * signal stays attached to the response and aborts a later read too; a read
+ * outside this function would escape the rewrite.
+ *
+ * `timeoutMs` of `0` or `undefined` means no deadline. `label` identifies the
+ * request in the error message (e.g. "GET /v1/shipments/1"); it must not
+ * contain credentials.
  */
 export async function fetchWithTimeout(
   url: string,
@@ -80,18 +90,16 @@ export async function fetchWithTimeout(
   timeoutMs: number | undefined,
   label: string,
   fetchImpl: typeof fetch = fetch
-): Promise<Response> {
-  if (timeoutMs === undefined) {
-    return fetchImpl(url, init)
-  }
+): Promise<InPostFetchResult> {
+  const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined
 
   try {
-    return await fetchImpl(url, {
-      ...init,
-      signal: AbortSignal.timeout(timeoutMs),
-    })
+    const response = await fetchImpl(url, signal ? { ...init, signal } : init)
+    const body = Buffer.from(await response.arrayBuffer())
+
+    return { response, body }
   } catch (error) {
-    if (isTimeoutError(error)) {
+    if (signal && isTimeoutError(error)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         `InPost API request timed out after ${timeoutMs} ms: ${label}`
@@ -103,10 +111,14 @@ export async function fetchWithTimeout(
 }
 
 /**
- * Whether a response body read failed because the request's deadline passed.
- * The signal given to fetch also aborts reading the body, so `response.text()`
- * and `response.json()` reject the same way `fetch` itself does.
+ * A response body as text, decoded the way `Response.text()` does it (UTF-8,
+ * leading BOM dropped).
  */
+export function decodeBody(body: Buffer): string {
+  return new TextDecoder().decode(body)
+}
+
+/** Whether `error` is the rejection an expired `AbortSignal.timeout` causes. */
 export function isTimeoutError(error: unknown): boolean {
   return (
     typeof error === "object" &&
