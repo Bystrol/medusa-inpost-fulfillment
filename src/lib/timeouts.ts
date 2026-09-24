@@ -1,5 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import { InPostPluginOptions } from "./types"
+import { InPostPluginOptions, InPostShipmentResponse } from "./types"
 
 export const DEFAULT_OFFER_POLL_ATTEMPTS = 15
 export const DEFAULT_OFFER_POLL_INTERVAL_MS = 2000
@@ -62,6 +62,30 @@ export function resolveOfferPolling(
             min: 0,
           }),
   }
+}
+
+/**
+ * Re-reads a new shipment until it is confirmed or has offers, at most
+ * `polling.attempts` times. With 0 attempts the shipment is returned as the
+ * create response left it, never re-read.
+ */
+export async function waitForOffers(
+  shipment: InPostShipmentResponse,
+  getShipment: (id: number) => Promise<InPostShipmentResponse>,
+  polling: InPostOfferPolling
+): Promise<InPostShipmentResponse> {
+  let current = shipment
+  for (let i = 0; i < polling.attempts; i++) {
+    if (current.status === "confirmed") break
+
+    const hasOffers = current.offers?.some((o) => o.status === "available")
+    if (hasOffers || current.status === "offers_prepared") break
+
+    await new Promise((resolve) => setTimeout(resolve, polling.intervalMs))
+    current = await getShipment(shipment.id)
+  }
+
+  return current
 }
 
 export type InPostFetchResult = {

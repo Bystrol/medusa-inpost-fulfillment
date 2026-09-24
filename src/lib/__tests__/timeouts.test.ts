@@ -12,7 +12,9 @@ import {
   fetchWithTimeout,
   resolveOfferPolling,
   resolveRequestTimeoutMs,
+  waitForOffers,
 } from "../timeouts"
+import type { InPostShipmentResponse } from "../types"
 
 describe("InPost request timeout option", () => {
   it("defaults to 30 s", () => {
@@ -48,7 +50,7 @@ describe("InPost offer polling options", () => {
     assert.equal(DEFAULT_OFFER_POLL_INTERVAL_MS, 2000)
   })
 
-  it("accepts zero attempts, which skips waiting for offers", () => {
+  it("accepts zero attempts", () => {
     assert.deepEqual(
       resolveOfferPolling({ offerPollAttempts: 0, offerPollIntervalMs: 500 }),
       { attempts: 0, intervalMs: 500 }
@@ -64,6 +66,69 @@ describe("InPost offer polling options", () => {
       () => resolveOfferPolling({ offerPollIntervalMs: 2.5 }),
       /offerPollIntervalMs/
     )
+  })
+})
+
+describe("waitForOffers", () => {
+  const shipment = (
+    status: string,
+    offers: InPostShipmentResponse["offers"] = []
+  ): InPostShipmentResponse => ({
+    id: 7,
+    status,
+    tracking_number: "",
+    href: "",
+    parcels: [],
+    offers,
+  })
+  const offer = { id: 1, status: "available" }
+
+  it("re-reads until offers appear", async () => {
+    const reads = [shipment("created"), shipment("offers_prepared", [offer])]
+    const ids: number[] = []
+    const result = await waitForOffers(
+      shipment("created"),
+      async (id) => {
+        ids.push(id)
+        return reads.shift()!
+      },
+      { attempts: 5, intervalMs: 0 }
+    )
+    assert.deepEqual(ids, [7, 7])
+    assert.equal(result.status, "offers_prepared")
+  })
+
+  it("stops after the configured number of re-reads", async () => {
+    let reads = 0
+    const result = await waitForOffers(
+      shipment("created"),
+      async () => {
+        reads++
+        return shipment("created")
+      },
+      { attempts: 3, intervalMs: 0 }
+    )
+    assert.equal(reads, 3)
+    assert.equal(result.status, "created")
+  })
+
+  it("with zero attempts never re-reads and returns the create response", async () => {
+    let reads = 0
+    const getShipment = async () => {
+      reads++
+      return shipment("confirmed")
+    }
+    const pending = shipment("created")
+    assert.equal(
+      await waitForOffers(pending, getShipment, { attempts: 0, intervalMs: 0 }),
+      pending
+    )
+    const withOffer = shipment("created", [offer])
+    assert.equal(
+      await waitForOffers(withOffer, getShipment, { attempts: 0, intervalMs: 0 }),
+      withOffer
+    )
+    assert.equal(reads, 0)
   })
 })
 

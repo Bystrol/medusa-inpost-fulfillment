@@ -99,8 +99,9 @@ const inpostOptions = {
   requestTimeoutMs: 30000,
 
   // Optional — how createFulfillment waits for a new shipment's offers:
-  // number of re-reads (default: 15, 0 skips the wait) and the pause before
-  // each one in ms (default: 2000)
+  // number of re-reads (default: 15) and the pause before each one in ms
+  // (default: 2000). 0 re-reads never: the create response must already be
+  // confirmed or carry an offer, or createFulfillment fails.
   offerPollAttempts: 15,
   offerPollIntervalMs: 2000,
 

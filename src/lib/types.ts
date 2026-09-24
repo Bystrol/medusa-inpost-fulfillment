@@ -15,7 +15,8 @@ export interface InPostPluginOptions {
   requestTimeoutMs?: number
   /**
    * How many times `createFulfillment` re-reads a new shipment while waiting
-   * for its offers. Default: 15. `0` skips the wait.
+   * for its offers. Default: 15. `0` never re-reads it: the create response
+   * must already be confirmed or carry an offer, or the fulfillment fails.
    */
   offerPollAttempts?: number
   /** Pause before each of those reads, in milliseconds. Default: 2000. */

@@ -21,7 +21,11 @@ import {
   InPostFulfillmentData,
   resolveLabelFormat,
 } from "../../lib/fulfillment";
-import { InPostOfferPolling, resolveOfferPolling } from "../../lib/timeouts";
+import {
+  InPostOfferPolling,
+  resolveOfferPolling,
+  waitForOffers,
+} from "../../lib/timeouts";
 import {
   InPostPluginOptions,
   InPostService,
@@ -221,20 +225,11 @@ class InPostFulfillmentProviderService extends AbstractFulfillmentProviderServic
       const shipment = await this.client.createShipment(shipmentRequest);
 
       // Poll until shipment is confirmed or offers are ready
-      let current = shipment;
-      for (let i = 0; i < this.offerPolling.attempts; i++) {
-        if (current.status === "confirmed") break;
-
-        const hasOffers = current.offers?.some(
-          (o) => o.status === "available"
-        );
-        if (hasOffers || current.status === "offers_prepared") break;
-
-        await new Promise((resolve) =>
-          setTimeout(resolve, this.offerPolling.intervalMs)
-        );
-        current = await this.client.getShipment(shipment.id);
-      }
+      let current = await waitForOffers(
+        shipment,
+        (id) => this.client.getShipment(id),
+        this.offerPolling
+      );
 
       // If not yet confirmed, try the offer flow (select + buy)
       if (current.status !== "confirmed") {
