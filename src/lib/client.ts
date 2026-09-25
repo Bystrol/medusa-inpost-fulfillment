@@ -7,6 +7,11 @@ import {
   InPostShipmentRequest,
   InPostShipmentResponse,
 } from "./types";
+import {
+  decodeBody,
+  fetchWithTimeout,
+  resolveRequestTimeoutMs,
+} from "./timeouts";
 
 const SANDBOX_BASE_URL = "https://sandbox-api-shipx-pl.easypack24.net";
 const PRODUCTION_BASE_URL = "https://api-shipx-pl.easypack24.net";
@@ -15,11 +20,13 @@ export class InPostShipXClient {
   private apiToken: string;
   private baseUrl: string;
   private organizationId: string;
+  private requestTimeoutMs: number;
 
   constructor(options: InPostPluginOptions) {
     this.baseUrl = options.sandbox ? SANDBOX_BASE_URL : PRODUCTION_BASE_URL;
     this.organizationId = options.organizationId;
     this.apiToken = options.apiToken;
+    this.requestTimeoutMs = resolveRequestTimeoutMs(options);
   }
 
   private async request<T>(
@@ -33,14 +40,19 @@ export class InPostShipXClient {
       "Content-Type": "application/json",
     };
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    const { response, body: responseBody } = await fetchWithTimeout(
+      `${this.baseUrl}${path}`,
+      {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      },
+      this.requestTimeoutMs,
+      `${method} ${path}`
+    );
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = decodeBody(responseBody);
       let errorMessage = `InPost API error: ${response.status} ${response.statusText}`;
 
       try {
@@ -80,15 +92,14 @@ export class InPostShipXClient {
     }
 
     if (responseType === "buffer") {
-      const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer) as unknown as T;
+      return responseBody as unknown as T;
     }
 
     if (response.status === 204) {
       return undefined as unknown as T;
     }
 
-    return response.json() as Promise<T>;
+    return JSON.parse(decodeBody(responseBody)) as T;
   }
 
   async createShipment(
