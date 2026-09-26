@@ -309,7 +309,9 @@ class InPostModuleService extends MedusaService({
 
   async listActiveShipments(limit = 50): Promise<InPostShipmentRecord[]> {
     const shipments = await this.crud().listInpostShipments(
-      {},
+      {
+        status: { $nin: INPOST_FINAL_SHIPMENT_STATUSES },
+      },
       {
         take: limit,
         order: { updated_at: "ASC" },

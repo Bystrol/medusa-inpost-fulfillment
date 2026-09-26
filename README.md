@@ -305,7 +305,7 @@ Label download accepts an optional `format` query parameter:
 /admin/inpost/shipments/:id/label?format=zpl
 ```
 
-Active shipments are synchronized every 15 minutes by the `sync-inpost-shipments` scheduled job.
+Active shipments are synchronized every 15 minutes by the `sync-inpost-shipments` scheduled job. The job processes up to 50 local shipments per run, least recently updated first, and skips final statuses: `delivered`, `canceled`, and `returned_to_sender`.
 
 Active return tickets are synchronized every 30 minutes by the `sync-inpost-returns` scheduled job. The job processes local returns with a `return_id` and skips final statuses: `failed`, `canceled`, `rejected`, `expired`, and `delivered`.
 
