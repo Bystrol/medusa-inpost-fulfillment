@@ -13,7 +13,7 @@ Built and maintained by [Digity](https://digity.studio/) — need a Medusa store
 > - Free setup assistance
 > - Priority bug fixes
 >
-> Reach out by [opening a GitHub issue](https://github.com/bystrol/medusa-inpost-fulfillment/issues/new) or emailing the maintainer. Bug reports from production use are especially welcome.
+> Reach out by [opening a GitHub issue](https://github.com/digity-studio/medusa-inpost-fulfillment/issues/new) or emailing the maintainer. Bug reports from production use are especially welcome.
 
 ## Features
 
