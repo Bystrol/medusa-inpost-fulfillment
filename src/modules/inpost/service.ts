@@ -110,12 +110,6 @@ type InPostReturnCrud = {
   ): Promise<InPostReturnItemRecord>;
 };
 
-const FINAL_SHIPMENT_STATUSES: ReadonlySet<string> = new Set(
-  INPOST_FINAL_SHIPMENT_STATUSES
-);
-const FINAL_RETURN_STATUSES: ReadonlySet<string> = new Set(
-  INPOST_FINAL_RETURN_STATUSES
-);
 const RETURN_REFRESH_PAGE_SIZE = 1000;
 const RETURN_REFRESH_LOOKBACK_MS = 2 * 24 * 60 * 60 * 1000;
 const RETURN_REFRESH_LOOKAHEAD_MS = 2 * 24 * 60 * 60 * 1000;
@@ -308,16 +302,14 @@ class InPostModuleService extends MedusaService({
   }
 
   async listActiveShipments(limit = 50): Promise<InPostShipmentRecord[]> {
-    const shipments = await this.crud().listInpostShipments(
-      {},
+    return this.crud().listInpostShipments(
+      {
+        status: { $nin: INPOST_FINAL_SHIPMENT_STATUSES },
+      },
       {
         take: limit,
         order: { updated_at: "ASC" },
       }
-    );
-
-    return shipments.filter(
-      (shipment) => !FINAL_SHIPMENT_STATUSES.has(shipment.status)
     );
   }
 
@@ -495,7 +487,7 @@ class InPostModuleService extends MedusaService({
   }
 
   async listActiveReturns(limit = 50): Promise<InPostReturnRecord[]> {
-    const returns = await this.returnCrud().listInpostReturns(
+    return this.returnCrud().listInpostReturns(
       {
         return_id: { $ne: null },
         status: { $nin: INPOST_FINAL_RETURN_STATUSES },
@@ -504,10 +496,6 @@ class InPostModuleService extends MedusaService({
         take: limit,
         order: { updated_at: "ASC" },
       }
-    );
-
-    return returns.filter(
-      (returnRecord) => !FINAL_RETURN_STATUSES.has(returnRecord.status)
     );
   }
 
